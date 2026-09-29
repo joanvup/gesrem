@@ -141,7 +141,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <ShieldCheck className="w-4 h-4 text-blue-900" />
-              <span>Auditoría & Backups</span>
+              <span>{currentUser?.role === 'admin' ? 'Auditoría & Backups' : 'Log de Auditoría'}</span>
             </button>
           </nav>
 
@@ -230,7 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="w-full px-3 py-2 text-left text-neutral-700 hover:bg-neutral-50 flex items-center gap-2 cursor-pointer"
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Auditoría & Usuarios</span>
+                      <span>{currentUser?.role === 'admin' ? 'Auditoría & Backups' : 'Log de Auditoría'}</span>
                     </button>
 
                     <div className="border-t border-neutral-100 my-1"></div>

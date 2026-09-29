@@ -387,11 +387,24 @@ app.post('/api/audit-logs', async (req, res) => {
   }
 });
 
-// ----------------- Backup and Restore Endpoints -----------------
+// Helper to verify admin authorization
+function requireAdmin(req: express.Request, res: express.Response): AppUser | null {
+  const user = getRequestUser(req);
+  if (!user || user.role !== 'admin') {
+    res.status(403).json({ error: 'Acceso denegado: Esta función requiere privilegios de Administrador.' });
+    return null;
+  }
+  return user;
+}
+
+// ----------------- Backup and Restore Endpoints (Admin Only) -----------------
 
 // 1. Download current raw SQLite database file
 app.get('/api/backup/download', async (req, res) => {
   try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
     const dbPath = path.resolve(process.cwd(), 'data', 'school_database.sqlite');
     if (!fs.existsSync(dbPath)) {
       return res.status(404).json({ error: 'Database file not found' });
@@ -412,7 +425,10 @@ app.get('/api/backup/download', async (req, res) => {
 // 2. Create a local backup checkpoint on server
 app.post('/api/backup/create', async (req, res) => {
   try {
-    const userName = getUserName(req);
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const userName = `${admin.name} (${admin.username})`;
     const filename = await createLocalBackup(userName);
     res.json({ ok: true, filename });
   } catch (error: any) {
@@ -423,6 +439,9 @@ app.post('/api/backup/create', async (req, res) => {
 // 3. List local backup checkpoints
 app.get('/api/backup/list', async (req, res) => {
   try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
     const backups = await listLocalBackups();
     res.json(backups);
   } catch (error: any) {
@@ -433,11 +452,14 @@ app.get('/api/backup/list', async (req, res) => {
 // 4. Restore from a local backup file on server
 app.post('/api/backup/restore-local', async (req, res) => {
   try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
     const { filename } = req.body;
     if (!filename) {
       return res.status(400).json({ error: 'Filename is required' });
     }
-    const userName = getUserName(req);
+    const userName = `${admin.name} (${admin.username})`;
     await restoreFromLocalBackup(filename, userName);
     res.json({ ok: true, message: `Restaurado desde ${filename}` });
   } catch (error: any) {
@@ -448,11 +470,14 @@ app.post('/api/backup/restore-local', async (req, res) => {
 // 5. Restore from an uploaded base64 SQLite file
 app.post('/api/backup/restore-upload', async (req, res) => {
   try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
     const { base64Data, filename } = req.body;
     if (!base64Data) {
       return res.status(400).json({ error: 'Base64 data is required' });
     }
-    const userName = getUserName(req);
+    const userName = `${admin.name} (${admin.username})`;
     const buffer = Buffer.from(base64Data, 'base64');
     await restoreFromSqliteBuffer(buffer, userName, filename || 'Archivo subido por usuario');
     res.json({ ok: true, message: 'Base de datos restaurada correctamente' });

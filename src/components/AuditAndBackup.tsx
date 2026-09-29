@@ -45,6 +45,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
   onDatabaseRestored,
   currentUser
 }) => {
+  const isAdmin = currentUser?.role === 'admin';
   const [activeSubTab, setActiveSubTab] = useState<'audit' | 'backup' | 'users'>('audit');
   
   // Audit Logs State
@@ -97,23 +98,29 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
     }
   };
 
-  // Load backups list
+  // Load backups list (Admin only)
   const loadBackups = async () => {
+    if (!isAdmin) return;
     setLoadingBackups(true);
     try {
       const data = await fetchLocalBackupsListApi();
       setBackups(data);
+    } catch {
+      // Handled silently
     } finally {
       setLoadingBackups(false);
     }
   };
 
-  // Load users list
+  // Load users list (Admin only)
   const loadUsers = async () => {
+    if (!isAdmin) return;
     setLoadingUsers(true);
     try {
       const data = await fetchUsersApi();
       setUsersList(data);
+    } catch {
+      // Handled silently
     } finally {
       setLoadingUsers(false);
     }
@@ -121,9 +128,11 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
 
   useEffect(() => {
     loadLogs();
-    loadBackups();
-    loadUsers();
-  }, []);
+    if (isAdmin) {
+      loadBackups();
+      loadUsers();
+    }
+  }, [isAdmin]);
 
   const handleCreateBackup = async () => {
     setActionInProgress('Creando copia de seguridad...');
@@ -410,10 +419,10 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-neutral-200">
+      <div className="flex items-center gap-2 border-b border-neutral-200 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveSubTab('audit')}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
             activeSubTab === 'audit'
               ? 'border-blue-900 text-blue-900'
               : 'border-transparent text-neutral-500 hover:text-neutral-800'
@@ -425,7 +434,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
 
         <button
           onClick={() => setActiveSubTab('backup')}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
             activeSubTab === 'backup'
               ? 'border-blue-900 text-blue-900'
               : 'border-transparent text-neutral-500 hover:text-neutral-800'
@@ -433,18 +442,28 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
         >
           <Database className="w-4 h-4" />
           <span>Copias de Seguridad & Restauración</span>
+          {!isAdmin && (
+            <span className="text-[10px] font-mono px-1.5 py-0.2 bg-neutral-100 text-neutral-500 rounded border border-neutral-200 flex items-center gap-0.5 font-bold">
+              <Lock className="w-2.5 h-2.5" /> Admin
+            </span>
+          )}
         </button>
 
         <button
           onClick={() => setActiveSubTab('users')}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
             activeSubTab === 'users'
               ? 'border-blue-900 text-blue-900'
               : 'border-transparent text-neutral-500 hover:text-neutral-800'
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Gestión de Usuarios ({usersList.length})</span>
+          <span>Gestión de Usuarios {isAdmin ? `(${usersList.length})` : ''}</span>
+          {!isAdmin && (
+            <span className="text-[10px] font-mono px-1.5 py-0.2 bg-neutral-100 text-neutral-500 rounded border border-neutral-200 flex items-center gap-0.5 font-bold">
+              <Lock className="w-2.5 h-2.5" /> Admin
+            </span>
+          )}
         </button>
       </div>
 
@@ -567,6 +586,29 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
 
       {/* TAB 2: BACKUPS & RESTORE */}
       {activeSubTab === 'backup' && (
+        !isAdmin ? (
+          <div className="bg-white border border-neutral-200 rounded-2xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4 my-6">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center justify-center mx-auto shadow-2xs">
+              <Lock className="w-7 h-7 text-amber-800" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-bold text-neutral-900 text-base">
+                Módulo Reservado para Administradores
+              </h3>
+              <p className="text-xs text-neutral-600 leading-relaxed">
+                La descarga, creación de puntos de restauración y recuperación de la base de datos <code className="font-mono bg-neutral-100 px-1 py-0.5 rounded text-neutral-800">.sqlite</code> están reservadas exclusivamente para el perfil de <strong>Administrador</strong>.
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                onClick={() => setActiveSubTab('audit')}
+                className="px-4 py-2 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+              >
+                ← Volver al Log de Auditoría
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6">
           {/* Action Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -709,10 +751,34 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
             )}
           </div>
         </div>
+        )
       )}
 
       {/* TAB 3: USERS MANAGEMENT */}
       {activeSubTab === 'users' && (
+        !isAdmin ? (
+          <div className="bg-white border border-neutral-200 rounded-2xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4 my-6">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 flex items-center justify-center mx-auto shadow-2xs">
+              <Lock className="w-7 h-7 text-blue-800" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-bold text-neutral-900 text-base">
+                Módulo Reservado para Administradores
+              </h3>
+              <p className="text-xs text-neutral-600 leading-relaxed">
+                La creación, eliminación y administración de cuentas de usuario están restringidas exclusivamente al perfil de <strong>Administrador</strong>.
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                onClick={() => setActiveSubTab('audit')}
+                className="px-4 py-2 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+              >
+                ← Volver al Log de Auditoría
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6">
           {/* Security Banner */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3 text-xs text-blue-950">
@@ -819,6 +885,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* Modal Add User */}
