@@ -372,11 +372,13 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-blue-900" />
             <h1 className="text-xl font-bold tracking-tight text-neutral-900">
-              Auditoría, Usuarios & Base de Datos
+              {isAdmin ? 'Auditoría, Usuarios & Base de Datos' : 'Registro de Auditoría e Historial'}
             </h1>
           </div>
           <p className="text-xs text-neutral-500 mt-1">
-            Registro cronológico inmutable de suplencias, control de accesos cifrados con PBKDF2/SHA-512 y copias de seguridad SQLite.
+            {isAdmin
+              ? 'Registro cronológico inmutable de suplencias, control de accesos cifrados con PBKDF2/SHA-512 y copias de seguridad SQLite.'
+              : 'Historial cronológico inmutable de asignaciones, cambios de estado y registros de reemplazos docentes.'}
           </p>
         </div>
 
@@ -432,39 +434,33 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
           <span>Log de Auditoría ({logs.length})</span>
         </button>
 
-        <button
-          onClick={() => setActiveSubTab('backup')}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
-            activeSubTab === 'backup'
-              ? 'border-blue-900 text-blue-900'
-              : 'border-transparent text-neutral-500 hover:text-neutral-800'
-          }`}
-        >
-          <Database className="w-4 h-4" />
-          <span>Copias de Seguridad & Restauración</span>
-          {!isAdmin && (
-            <span className="text-[10px] font-mono px-1.5 py-0.2 bg-neutral-100 text-neutral-500 rounded border border-neutral-200 flex items-center gap-0.5 font-bold">
-              <Lock className="w-2.5 h-2.5" /> Admin
-            </span>
-          )}
-        </button>
+        {isAdmin && (
+          <>
+            <button
+              onClick={() => setActiveSubTab('backup')}
+              className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+                activeSubTab === 'backup'
+                  ? 'border-blue-900 text-blue-900'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-800'
+              }`}
+            >
+              <Database className="w-4 h-4" />
+              <span>Copias de Seguridad & Restauración</span>
+            </button>
 
-        <button
-          onClick={() => setActiveSubTab('users')}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
-            activeSubTab === 'users'
-              ? 'border-blue-900 text-blue-900'
-              : 'border-transparent text-neutral-500 hover:text-neutral-800'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Gestión de Usuarios {isAdmin ? `(${usersList.length})` : ''}</span>
-          {!isAdmin && (
-            <span className="text-[10px] font-mono px-1.5 py-0.2 bg-neutral-100 text-neutral-500 rounded border border-neutral-200 flex items-center gap-0.5 font-bold">
-              <Lock className="w-2.5 h-2.5" /> Admin
-            </span>
-          )}
-        </button>
+            <button
+              onClick={() => setActiveSubTab('users')}
+              className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+                activeSubTab === 'users'
+                  ? 'border-blue-900 text-blue-900'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-800'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Gestión de Usuarios ({usersList.length})</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* TAB 1: AUDIT LOG */}

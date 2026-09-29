@@ -270,8 +270,11 @@ app.get('/api/teachers', async (req, res) => {
 
 app.post('/api/teachers', async (req, res) => {
   try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
     const teachers = Array.isArray(req.body) ? req.body : req.body.teachers;
-    const userName = getUserName(req);
+    const userName = `${admin.name} (${admin.username})`;
     if (!Array.isArray(teachers)) {
       return res.status(400).json({ error: 'Expected an array of teachers' });
     }

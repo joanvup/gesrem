@@ -257,7 +257,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'pdf' && (
+        {activeTab === 'pdf' && currentUser?.role === 'admin' && (
           <PdfLoader
             teachers={teachers}
             onUpdateTeachers={handleUpdateTeachers}

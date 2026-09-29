@@ -120,17 +120,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Equidad & Estadísticas</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('pdf')}
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
-                activeTab === 'pdf'
-                  ? 'bg-neutral-100 text-neutral-900'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50'
-              }`}
-            >
-              <FileUp className="w-4 h-4 text-neutral-500" />
-              <span>Cargar PDF</span>
-            </button>
+            {currentUser?.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('pdf')}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+                  activeTab === 'pdf'
+                    ? 'bg-neutral-100 text-neutral-900'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50'
+                }`}
+              >
+                <FileUp className="w-4 h-4 text-neutral-500" />
+                <span>Cargar PDF</span>
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('audit')}
@@ -307,15 +309,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             <BarChart3 className="w-3.5 h-3.5" />
             <span>Equidad</span>
           </button>
-          <button
-            onClick={() => setActiveTab('pdf')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
-              activeTab === 'pdf' ? 'bg-blue-900 text-white shadow-xs font-semibold' : 'text-neutral-600 hover:bg-neutral-100'
-            }`}
-          >
-            <FileUp className="w-3.5 h-3.5" />
-            <span>PDF</span>
-          </button>
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={() => setActiveTab('pdf')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
+                activeTab === 'pdf' ? 'bg-blue-900 text-white shadow-xs font-semibold' : 'text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              <FileUp className="w-3.5 h-3.5" />
+              <span>PDF</span>
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('audit')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
