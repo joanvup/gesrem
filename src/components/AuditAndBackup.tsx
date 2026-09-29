@@ -16,24 +16,36 @@ import {
   HardDriveDownload,
   Calendar,
   Layers,
-  Info
+  Info,
+  Users,
+  UserPlus,
+  Trash2,
+  Lock,
+  KeyRound
 } from 'lucide-react';
-import { AuditLogEntry, BackupPoint } from '../types';
+import { AuditLogEntry, BackupPoint, AppUser, UserRole } from '../types';
 import {
   fetchAuditLogsApi,
   createLocalBackupApi,
   fetchLocalBackupsListApi,
   restoreLocalBackupApi,
   restoreUploadBackupApi,
-  downloadSqliteBackup
+  downloadSqliteBackup,
+  fetchUsersApi,
+  createUserApi,
+  deleteUserApi
 } from '../utils/storage';
 
 interface AuditAndBackupProps {
   onDatabaseRestored: () => Promise<void>;
+  currentUser?: AppUser | null;
 }
 
-export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestored }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'audit' | 'backup'>('audit');
+export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
+  onDatabaseRestored,
+  currentUser
+}) => {
+  const [activeSubTab, setActiveSubTab] = useState<'audit' | 'backup' | 'users'>('audit');
   
   // Audit Logs State
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -47,8 +59,24 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
-  // Custom user name for audit actions
-  const [userName, setUserName] = useState<string>('Coordinación Académica');
+  // Users State
+  const [usersList, setUsersList] = useState<AppUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
+  const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
+  const [newUserForm, setNewUserForm] = useState<{
+    username: string;
+    password: string;
+    name: string;
+    role: UserRole;
+  }>({
+    username: '',
+    password: '',
+    name: '',
+    role: 'coordinator'
+  });
+
+  // Current operator name
+  const userName = currentUser ? `${currentUser.name} (${currentUser.username})` : 'Coordinación Académica';
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -80,9 +108,21 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
     }
   };
 
+  // Load users list
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const data = await fetchUsersApi();
+      setUsersList(data);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   useEffect(() => {
     loadLogs();
     loadBackups();
+    loadUsers();
   }, []);
 
   const handleCreateBackup = async () => {
@@ -129,6 +169,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
           await onDatabaseRestored();
           await loadBackups();
           await loadLogs();
+          await loadUsers();
         } else {
           setStatusMessage({
             type: 'error',
@@ -145,6 +186,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
           await onDatabaseRestored();
           await loadBackups();
           await loadLogs();
+          await loadUsers();
         } else {
           setStatusMessage({
             type: 'error',
@@ -174,6 +216,62 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
     });
     // Reset file input value
     e.target.value = '';
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserForm.username.trim() || !newUserForm.name.trim() || !newUserForm.password) {
+      alert('Por favor completa todos los campos.');
+      return;
+    }
+
+    if (newUserForm.password.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    try {
+      const res = await createUserApi(newUserForm);
+      if (res.ok) {
+        setStatusMessage({
+          type: 'success',
+          text: `Usuario ${newUserForm.username} creado con éxito y contraseña cifrada.`
+        });
+        setNewUserForm({
+          username: '',
+          password: '',
+          name: '',
+          role: 'coordinator'
+        });
+        setShowAddUserModal(false);
+        await loadUsers();
+        await loadLogs();
+      } else {
+        alert(res.error || 'Error al crear usuario');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al crear usuario');
+    }
+  };
+
+  const handleDeleteUser = async (userToDelete: AppUser) => {
+    if (confirm(`¿Estás seguro de que deseas eliminar al usuario '${userToDelete.username}' (${userToDelete.name})?`)) {
+      try {
+        const res = await deleteUserApi(userToDelete.id);
+        if (res.ok) {
+          setStatusMessage({
+            type: 'success',
+            text: `Usuario ${userToDelete.username} eliminado correctamente.`
+          });
+          await loadUsers();
+          await loadLogs();
+        } else {
+          alert(res.error || 'Error al eliminar usuario');
+        }
+      } catch (err: any) {
+        alert(err.message || 'Error al eliminar usuario');
+      }
+    }
   };
 
   // Filter logs
@@ -265,26 +363,22 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-blue-900" />
             <h1 className="text-xl font-bold tracking-tight text-neutral-900">
-              Auditoría & Respaldo SQLite
+              Auditoría, Usuarios & Base de Datos
             </h1>
           </div>
           <p className="text-xs text-neutral-500 mt-1">
-            Registro cronológico inmutable de modificaciones en reemplazos (quién editó, qué cambió y fecha/hora) y gestión de copias de seguridad de la base de datos.
+            Registro cronológico inmutable de suplencias, control de accesos cifrados con PBKDF2/SHA-512 y copias de seguridad SQLite.
           </p>
         </div>
 
         {/* Responsible user badge */}
         <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-lg px-3 py-1.5 shadow-2xs self-start md:self-auto">
-          <User className="w-4 h-4 text-neutral-400" />
+          <User className="w-4 h-4 text-blue-900" />
           <div className="text-xs">
-            <span className="text-neutral-400 text-[10px] block">Usuario / Operador:</span>
-            <input
-              type="text"
-              value={userName}
-              onChange={e => setUserName(e.target.value)}
-              className="font-semibold text-neutral-900 bg-transparent border-none text-xs focus:outline-none w-44"
-              placeholder="Coordinación Académica"
-            />
+            <span className="text-neutral-400 text-[10px] block">Sesión Activa:</span>
+            <span className="font-semibold text-neutral-900 block truncate max-w-[200px]">
+              {userName}
+            </span>
           </div>
         </div>
       </div>
@@ -339,6 +433,18 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
         >
           <Database className="w-4 h-4" />
           <span>Copias de Seguridad & Restauración</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('users')}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
+            activeSubTab === 'users'
+              ? 'border-blue-900 text-blue-900'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Gestión de Usuarios ({usersList.length})</span>
         </button>
       </div>
 
@@ -521,7 +627,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
                   Subir y Restaurar Archivo
                 </h3>
                 <p className="text-xs text-neutral-500 leading-relaxed">
-                  Restaura el sistema seleccionando un archivo <code className="font-mono bg-neutral-100 px-1 rounded text-neutral-800">.sqlite</code> previamente descargado. Se creará una copia de seguridad automática preventiva.
+                  Restaura el sistema seleccionando un archivo <code className="font-mono bg-neutral-100 px-1 rounded text-neutral-800">.sqlite</code> previamente descargado. Se creará una copia de seguridad preventiva automática.
                 </p>
               </div>
 
@@ -601,6 +707,203 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({ onDatabaseRestor
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: USERS MANAGEMENT */}
+      {activeSubTab === 'users' && (
+        <div className="space-y-6">
+          {/* Security Banner */}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3 text-xs text-blue-950">
+            <Lock className="w-5 h-5 text-blue-800 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold text-sm block">Cifrado Criptográfico de Contraseñas Activo</span>
+              <p className="text-blue-900/80 leading-relaxed">
+                Todas las contraseñas se almacenan en la tabla <code className="bg-white/80 px-1 py-0.5 rounded font-mono font-bold">users</code> de SQLite mediante hash criptográfico irreversible <strong>PBKDF2 con HMAC-SHA512</strong> y 100.000 iteraciones con sal individual (Salt). Ninguna contraseña se guarda en texto plano.
+              </p>
+            </div>
+          </div>
+
+          {/* Users Header and Actions */}
+          <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-4">
+              <div>
+                <h3 className="font-bold text-neutral-900 text-sm">
+                  Cuentas de Acceso al Sistema
+                </h3>
+                <p className="text-xs text-neutral-500">
+                  Usuarios autorizados para acceder, gestionar reemplazos y realizar auditorías.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadUsers}
+                  disabled={loadingUsers}
+                  className="px-3 py-1.5 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg border border-neutral-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingUsers ? 'animate-spin' : ''}`} />
+                  <span>Refrescar</span>
+                </button>
+
+                <button
+                  onClick={() => setShowAddUserModal(true)}
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>+ Crear Usuario</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Users Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-medium">
+                    <th className="py-2.5 px-4">Usuario</th>
+                    <th className="py-2.5 px-4">Nombre Completo / Cargo</th>
+                    <th className="py-2.5 px-4">Rol</th>
+                    <th className="py-2.5 px-4">Fecha Creación</th>
+                    <th className="py-2.5 px-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {usersList.map(u => (
+                    <tr key={u.id} className="hover:bg-neutral-50/60 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold text-neutral-900">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center font-bold text-xs uppercase">
+                            {u.username.substring(0, 2)}
+                          </div>
+                          <span>{u.username}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 font-semibold text-neutral-800">
+                        {u.name}
+                      </td>
+
+                      <td className="py-3 px-4">
+                        {u.role === 'admin' ? (
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 text-purple-900 border border-purple-200">
+                            Administrador
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-900 border border-blue-200">
+                            Coordinador
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-3 px-4 font-mono text-neutral-500 text-[11px]">
+                        {formatTimestamp(u.createdAt)}
+                      </td>
+
+                      <td className="py-3 px-4 text-right">
+                        {u.username !== 'admin' && u.id !== currentUser?.id && (
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                            title="Eliminar usuario"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Add User */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full border border-neutral-200 overflow-hidden p-6 space-y-4">
+            <div className="flex items-center gap-3 border-b border-neutral-100 pb-3">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-900 flex items-center justify-center shrink-0">
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-neutral-900 text-sm">
+                  Registrar Nuevo Usuario
+                </h3>
+                <p className="text-xs text-neutral-500">
+                  La contraseña se cifrará automáticamente con PBKDF2.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="space-y-3">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-neutral-700">Nombre de Usuario (Login)</label>
+                <input
+                  type="text"
+                  required
+                  value={newUserForm.username}
+                  onChange={e => setNewUserForm({ ...newUserForm, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                  placeholder="ej. cprimaria"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-blue-800 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-neutral-700">Nombre Completo y Cargo</label>
+                <input
+                  type="text"
+                  required
+                  value={newUserForm.name}
+                  onChange={e => setNewUserForm({ ...newUserForm, name: e.target.value })}
+                  placeholder="ej. Lic. Martha Gómez (Coord. Primaria)"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-blue-800"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-neutral-700">Contraseña (Mínimo 6 caracteres)</label>
+                <input
+                  type="password"
+                  required
+                  value={newUserForm.password}
+                  onChange={e => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                  placeholder="••••••••••••"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-blue-800 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-neutral-700">Rol en el Sistema</label>
+                <select
+                  value={newUserForm.role}
+                  onChange={e => setNewUserForm({ ...newUserForm, role: e.target.value as UserRole })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-blue-800 bg-white"
+                >
+                  <option value="coordinator">Coordinador (Gestión de Reemplazos)</option>
+                  <option value="admin">Administrador (Control Total & Backups)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddUserModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 rounded-lg transition-colors cursor-pointer shadow-xs"
+                >
+                  Crear y Cifrar Usuario
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

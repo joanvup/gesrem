@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import initSqlJs, { Database } from 'sql.js';
 import {
   Teacher,
@@ -7,9 +8,30 @@ import {
   AbsenceRecord,
   ReplacementAssignment,
   AuditLogEntry,
-  BackupPoint
+  BackupPoint,
+  AppUser,
+  UserRole
 } from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
+
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string): boolean {
+  try {
+    const parts = storedHash.split(':');
+    if (parts.length !== 2) return false;
+    const [salt, key] = parts;
+    const keyBuffer = Buffer.from(key, 'hex');
+    const derivedKey = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512');
+    return crypto.timingSafeEqual(keyBuffer, derivedKey);
+  } catch {
+    return false;
+  }
+}
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const BACKUPS_DIR = path.join(DB_DIR, 'backups');
@@ -155,6 +177,36 @@ function initTables(db: Database): void {
       new_value TEXT
     );
   `);
+
+  // 6. Users table for authentication
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'coordinator',
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  // Check if users table is empty; if so, create initial admin user
+  const userCountRes = db.exec('SELECT COUNT(*) as count FROM users');
+  const userCount = userCountRes[0]?.values[0]?.[0] as number;
+  if (!userCount || userCount === 0) {
+    const defaultPasswordHash = hashPassword('Colegio2026*');
+    db.run(
+      'INSERT INTO users (id, username, password_hash, name, role, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        'user_admin_default',
+        'admin',
+        defaultPasswordHash,
+        'Coordinación Académica',
+        'admin',
+        new Date().toISOString()
+      ]
+    );
+  }
 
   // Check if teachers table is empty; if so, seed from INITIAL_TEACHERS
   const countResult = db.exec('SELECT COUNT(*) as count FROM teachers');
@@ -655,3 +707,169 @@ export async function restoreFromSqliteBuffer(
     throw new Error(`Error restaurando base de datos: ${err.message}`);
   }
 }
+
+// ----------------- User Authentication & Management -----------------
+
+export async function findUserWithPassword(username: string): Promise<{
+  id: string;
+  username: string;
+  passwordHash: string;
+  name: string;
+  role: UserRole;
+  createdAt: string;
+} | null> {
+  const db = await getDatabase();
+  const res = db.exec(
+    'SELECT id, username, password_hash, name, role, created_at FROM users WHERE LOWER(username) = LOWER(?)',
+    [username.trim()]
+  );
+  if (!res || res.length === 0 || !res[0].values[0]) {
+    return null;
+  }
+
+  const row = res[0].values[0];
+  return {
+    id: row[0] as string,
+    username: row[1] as string,
+    passwordHash: row[2] as string,
+    name: row[3] as string,
+    role: row[4] as UserRole,
+    createdAt: row[5] as string
+  };
+}
+
+export async function findUserByIdInDb(id: string): Promise<AppUser | null> {
+  const db = await getDatabase();
+  const res = db.exec('SELECT id, username, name, role, created_at FROM users WHERE id = ?', [id]);
+  if (!res || res.length === 0 || !res[0].values[0]) {
+    return null;
+  }
+
+  const row = res[0].values[0];
+  return {
+    id: row[0] as string,
+    username: row[1] as string,
+    name: row[2] as string,
+    role: row[3] as UserRole,
+    createdAt: row[4] as string
+  };
+}
+
+export async function getAllUsersFromDb(): Promise<AppUser[]> {
+  const db = await getDatabase();
+  const res = db.exec('SELECT id, username, name, role, created_at FROM users ORDER BY created_at ASC');
+  if (!res || res.length === 0) return [];
+
+  const rows = res[0].values;
+  return rows.map(r => ({
+    id: r[0] as string,
+    username: r[1] as string,
+    name: r[2] as string,
+    role: r[3] as UserRole,
+    createdAt: r[4] as string
+  }));
+}
+
+export async function createUserInDb(
+  username: string,
+  plainPassword: string,
+  name: string,
+  role: UserRole = 'coordinator',
+  operatorName = 'Administrador'
+): Promise<AppUser> {
+  const db = await getDatabase();
+  const cleanUsername = username.trim().toLowerCase();
+
+  const existing = await findUserWithPassword(cleanUsername);
+  if (existing) {
+    throw new Error(`El usuario '${cleanUsername}' ya existe en el sistema.`);
+  }
+
+  if (plainPassword.length < 6) {
+    throw new Error('La contraseña debe tener al menos 6 caracteres.');
+  }
+
+  const id = `user_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const passwordHash = hashPassword(plainPassword);
+  const createdAt = new Date().toISOString();
+
+  db.run(
+    'INSERT INTO users (id, username, password_hash, name, role, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [id, cleanUsername, passwordHash, name.trim(), role, createdAt]
+  );
+  saveDatabase(db);
+
+  await addAuditLog({
+    action: 'CREATE',
+    entityType: 'DATABASE',
+    entityId: id,
+    userName: operatorName,
+    details: `Creado nuevo usuario de acceso '${cleanUsername}' (${name.trim()} - Rol: ${role}).`
+  });
+
+  return {
+    id,
+    username: cleanUsername,
+    name: name.trim(),
+    role,
+    createdAt
+  };
+}
+
+export async function updateUserPasswordInDb(
+  userId: string,
+  newPassword: string,
+  operatorName = 'Administrador'
+): Promise<boolean> {
+  const db = await getDatabase();
+  const user = await findUserByIdInDb(userId);
+  if (!user) {
+    throw new Error('Usuario no encontrado.');
+  }
+
+  if (newPassword.length < 6) {
+    throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
+  }
+
+  const newHash = hashPassword(newPassword);
+  db.run('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, userId]);
+  saveDatabase(db);
+
+  await addAuditLog({
+    action: 'UPDATE_STATUS',
+    entityType: 'DATABASE',
+    entityId: userId,
+    userName: operatorName,
+    details: `Actualizada la contraseña para el usuario '${user.username}'.`
+  });
+
+  return true;
+}
+
+export async function deleteUserInDb(userId: string, operatorName = 'Administrador'): Promise<boolean> {
+  const db = await getDatabase();
+  const user = await findUserByIdInDb(userId);
+  if (!user) {
+    throw new Error('Usuario no encontrado.');
+  }
+
+  const allUsers = await getAllUsersFromDb();
+  const adminCount = allUsers.filter(u => u.role === 'admin').length;
+  if (user.role === 'admin' && adminCount <= 1) {
+    throw new Error('No es posible eliminar el único usuario Administrador del sistema.');
+  }
+
+  db.run('DELETE FROM users WHERE id = ?', [userId]);
+  saveDatabase(db);
+
+  await addAuditLog({
+    action: 'DELETE',
+    entityType: 'DATABASE',
+    entityId: userId,
+    userName: operatorName,
+    details: `Eliminado el usuario de acceso '${user.username}' (${user.name}).`
+  });
+
+  return true;
+}
+

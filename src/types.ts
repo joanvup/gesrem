@@ -140,3 +140,19 @@ export interface BackupPoint {
   sizeBytes: number;
 }
 
+export type UserRole = 'admin' | 'coordinator';
+
+export interface AppUser {
+  id: string;
+  username: string;
+  name: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface AuthSession {
+  token: string;
+  user: AppUser;
+}
+
+

@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import {
   getDatabase,
   getAllTeachersFromDb,
@@ -18,8 +19,16 @@ import {
   listLocalBackups,
   restoreFromLocalBackup,
   restoreFromSqliteBuffer,
-  getRawDatabaseBuffer
+  getRawDatabaseBuffer,
+  findUserWithPassword,
+  findUserByIdInDb,
+  getAllUsersFromDb,
+  createUserInDb,
+  updateUserPasswordInDb,
+  deleteUserInDb,
+  verifyPassword
 } from './src/db/sqlite';
+import { AppUser } from './src/types';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,8 +37,35 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Support JSON payloads up to 50MB (for database uploads)
 app.use(express.json({ limit: '50mb' }));
 
+// Active token sessions cache (7-day validity)
+interface SessionData {
+  user: AppUser;
+  expiresAt: number;
+}
+const activeSessions = new Map<string, SessionData>();
+
+function getRequestUser(req: express.Request): AppUser | null {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const session = activeSessions.get(token);
+    if (session) {
+      if (session.expiresAt > Date.now()) {
+        return session.user;
+      } else {
+        activeSessions.delete(token);
+      }
+    }
+  }
+  return null;
+}
+
 // Helper to extract active user name from request
 function getUserName(req: express.Request): string {
+  const user = getRequestUser(req);
+  if (user) {
+    return `${user.name} (${user.username})`;
+  }
   return (
     (req.body && req.body.userName) ||
     (req.headers['x-user-name'] as string) ||
@@ -37,7 +73,165 @@ function getUserName(req: express.Request): string {
   );
 }
 
-// ----------------- SQLite API Endpoints -----------------
+// ----------------- Authentication Endpoints -----------------
+
+// POST /api/auth/login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
+    }
+
+    const userWithPw = await findUserWithPassword(username);
+    if (!userWithPw) {
+      return res.status(401).json({ error: 'Credenciales inválidas. Verifica tu usuario y contraseña.' });
+    }
+
+    const isValid = verifyPassword(password, userWithPw.passwordHash);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Credenciales inválidas. Verifica tu usuario y contraseña.' });
+    }
+
+    // Generate secure session token (64 hex characters)
+    const token = crypto.randomBytes(32).toString('hex');
+    const userSafe: AppUser = {
+      id: userWithPw.id,
+      username: userWithPw.username,
+      name: userWithPw.name,
+      role: userWithPw.role,
+      createdAt: userWithPw.createdAt
+    };
+
+    // Store in session map for 7 days
+    activeSessions.set(token, {
+      user: userSafe,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
+    });
+
+    await addAuditLog({
+      action: 'UPDATE_STATUS',
+      entityType: 'DATABASE',
+      entityId: userSafe.id,
+      userName: `${userSafe.name} (${userSafe.username})`,
+      details: `Inicio de sesión exitoso desde ${req.ip || 'servidor'}.`
+    });
+
+    res.json({
+      ok: true,
+      token,
+      user: userSafe
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/auth/me
+app.get('/api/auth/me', async (req, res) => {
+  const user = getRequestUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'No autenticado o sesión expirada' });
+  }
+  res.json({ ok: true, user });
+});
+
+// POST /api/auth/logout
+app.post('/api/auth/logout', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    activeSessions.delete(token);
+  }
+  res.json({ ok: true });
+});
+
+// POST /api/auth/change-password
+app.post('/api/auth/change-password', async (req, res) => {
+  try {
+    const currentUser = getRequestUser(req);
+    if (!currentUser) {
+      return res.status(401).json({ error: 'Debes iniciar sesión para cambiar tu contraseña' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Se requiere la contraseña actual y la nueva' });
+    }
+
+    const userWithPw = await findUserWithPassword(currentUser.username);
+    if (!userWithPw || !verifyPassword(currentPassword, userWithPw.passwordHash)) {
+      return res.status(400).json({ error: 'La contraseña actual ingresada es incorrecta' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    }
+
+    await updateUserPasswordInDb(currentUser.id, newPassword, `${currentUser.name} (${currentUser.username})`);
+    res.json({ ok: true, message: 'Contraseña actualizada con éxito' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ----------------- User Management Endpoints (Admin only) -----------------
+
+app.get('/api/users', async (req, res) => {
+  try {
+    const currentUser = getRequestUser(req);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso restringido a Administradores' });
+    }
+
+    const users = await getAllUsersFromDb();
+    res.json(users);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/users', async (req, res) => {
+  try {
+    const currentUser = getRequestUser(req);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso restringido a Administradores' });
+    }
+
+    const { username, password, name, role } = req.body;
+    if (!username || !password || !name) {
+      return res.status(400).json({ error: 'Nombre, usuario y contraseña son obligatorios' });
+    }
+
+    const newUser = await createUserInDb(
+      username,
+      password,
+      name,
+      role || 'coordinator',
+      `${currentUser.name} (${currentUser.username})`
+    );
+
+    res.json({ ok: true, user: newUser });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const currentUser = getRequestUser(req);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso restringido a Administradores' });
+    }
+
+    await deleteUserInDb(req.params.id, `${currentUser.name} (${currentUser.username})`);
+    res.json({ ok: true });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ----------------- SQLite Core API Endpoints -----------------
 
 app.get('/api/status', async (req, res) => {
   try {
@@ -45,6 +239,7 @@ app.get('/api/status', async (req, res) => {
     const absences = await getAllAbsencesFromDb();
     const replacements = await getAllReplacementsFromDb();
     const auditLogs = await getAuditLogsFromDb(1);
+    const users = await getAllUsersFromDb();
 
     res.json({
       ok: true,
@@ -54,7 +249,8 @@ app.get('/api/status', async (req, res) => {
         teachers: teachers.length,
         absences: absences.length,
         replacements: replacements.length,
-        auditLogsCount: auditLogs.length
+        auditLogsCount: auditLogs.length,
+        usersCount: users.length
       }
     });
   } catch (error: any) {

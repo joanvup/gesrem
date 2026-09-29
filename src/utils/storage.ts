@@ -1,4 +1,4 @@
-import { Teacher, AbsenceRecord, ReplacementAssignment, AuditLogEntry, BackupPoint } from '../types';
+import { Teacher, AbsenceRecord, ReplacementAssignment, AuditLogEntry, BackupPoint, AppUser, UserRole } from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
 
 const STORAGE_KEYS = {
@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   ABSENCES: 'reemplaza_absences_v1',
   REPLACEMENTS: 'reemplaza_replacements_v1',
   CUSTOM_CONFIG: 'reemplaza_config_v1',
+  AUTH_TOKEN: 'gesrem_auth_token_v1',
+  AUTH_USER: 'gesrem_auth_user_v1'
 };
 
 // Initial sample absences for realistic demonstration if none exist
@@ -264,6 +266,188 @@ export async function restoreUploadBackupApi(file: File, userName = 'Coordinaci�
 
 export function downloadSqliteBackup(): void {
   window.open('/api/backup/download', '_blank');
+}
+
+// ----------------- Authentication Helpers -----------------
+
+export function getStoredAuthToken(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredAuthToken(token: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+  } catch {}
+}
+
+export function clearStoredAuth(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+  } catch {}
+}
+
+export function getStoredAuthUser(): AppUser | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredAuthUser(user: AppUser | null): void {
+  try {
+    if (user) {
+      localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    }
+  } catch {}
+}
+
+export async function loginApi(
+  username: string,
+  password: string
+): Promise<{ ok: boolean; user?: AppUser; token?: string; error?: string }> {
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      setStoredAuthToken(data.token);
+      setStoredAuthUser(data.user);
+      return { ok: true, user: data.user, token: data.token };
+    }
+    return { ok: false, error: data.error || 'Credenciales inválidas' };
+  } catch (err: any) {
+    return { ok: false, error: 'No fue posible conectar con el servidor.' };
+  }
+}
+
+export async function checkAuthApi(): Promise<AppUser | null> {
+  const token = getStoredAuthToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok && data.user) {
+        setStoredAuthUser(data.user);
+        return data.user;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not verify auth with server', err);
+  }
+
+  // If server returns 401 or invalid, fall back to cached user or clear
+  return getStoredAuthUser();
+}
+
+export async function logoutApi(): Promise<void> {
+  const token = getStoredAuthToken();
+  if (token) {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch {}
+  }
+  clearStoredAuth();
+}
+
+export async function changePasswordApi(
+  currentPassword: string,
+  newPassword: string
+): Promise<{ ok: boolean; error?: string }> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return { ok: true };
+    }
+    return { ok: false, error: data.error || 'Error al cambiar la contraseña' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function fetchUsersApi(): Promise<AppUser[]> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/users', {
+      headers: { Authorization: `Bearer ${token || ''}` }
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Could not fetch users', err);
+  }
+  return [];
+}
+
+export async function createUserApi(user: {
+  username: string;
+  password: string;
+  name: string;
+  role: UserRole;
+}): Promise<{ ok: boolean; user?: AppUser; error?: string }> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify(user)
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return { ok: true, user: data.user };
+    }
+    return { ok: false, error: data.error || 'Error al crear usuario' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function deleteUserApi(userId: string): Promise<{ ok: boolean; error?: string }> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token || ''}` }
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return { ok: true };
+    }
+    return { ok: false, error: data.error || 'Error al eliminar usuario' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
 }
 
 // ----------------- Local Storage Cache -----------------

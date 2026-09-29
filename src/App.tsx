@@ -13,7 +13,9 @@ import { PdfLoader } from './components/PdfLoader';
 import { PrintSlipModal } from './components/PrintSlipModal';
 import { PrintSummaryModal } from './components/PrintSummaryModal';
 import { AuditAndBackup } from './components/AuditAndBackup';
-import { Teacher, AbsenceRecord, ReplacementAssignment, DayOfWeek } from './types';
+import { LoginScreen } from './components/LoginScreen';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { Teacher, AbsenceRecord, ReplacementAssignment, DayOfWeek, AppUser } from './types';
 import {
   loadTeachers,
   saveTeachers,
@@ -29,10 +31,17 @@ import {
   syncReplacementsToApi,
   deleteReplacementFromApi,
   toggleReplacementStatusInApi,
-  syncTeachersToApi
+  syncTeachersToApi,
+  getStoredAuthUser,
+  checkAuthApi,
+  logoutApi
 } from './utils/storage';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(getStoredAuthUser);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState<boolean>(false);
+
   const [teachers, setTeachers] = useState<Teacher[]>(loadTeachers);
   const [absences, setAbsences] = useState<AbsenceRecord[]>(loadAbsences);
   const [replacements, setReplacements] = useState<ReplacementAssignment[]>(loadReplacements);
@@ -73,10 +82,25 @@ export default function App() {
     setReplacements(dbReplacements);
   };
 
-  // Initial load from SQLite Database
+  // Initial load and session verification
   useEffect(() => {
+    async function verifySession() {
+      try {
+        const verifiedUser = await checkAuthApi();
+        setCurrentUser(verifiedUser);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    }
+
+    verifySession();
     reloadAllFromDb();
   }, []);
+
+  const handleLogout = async () => {
+    await logoutApi();
+    setCurrentUser(null);
+  };
 
   // Compute school DayOfWeek from selectedDate
   const selectedDay: DayOfWeek = useMemo(() => {
@@ -167,6 +191,10 @@ export default function App() {
 
   const todayReplacementsCount = replacements.filter(r => r.date === selectedDate).length;
 
+  if (!currentUser && !isCheckingAuth) {
+    return <LoginScreen onLoginSuccess={user => setCurrentUser(user)} />;
+  }
+
   return (
     <div className="min-h-screen bg-neutral-100/60 text-neutral-900 flex flex-col font-sans antialiased">
       {/* Navigation Top Bar */}
@@ -179,6 +207,9 @@ export default function App() {
         onOpenNewAbsence={() => setActiveTab('hub')}
         activeReplacementsCount={todayReplacementsCount}
         sqliteConnected={sqliteConnected}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onOpenChangePassword={() => setChangePasswordModalOpen(true)}
       />
 
       {/* Main Workspace Canvas */}
@@ -235,7 +266,7 @@ export default function App() {
         )}
 
         {activeTab === 'audit' && (
-          <AuditAndBackup onDatabaseRestored={reloadAllFromDb} />
+          <AuditAndBackup onDatabaseRestored={reloadAllFromDb} currentUser={currentUser} />
         )}
       </main>
 
@@ -248,6 +279,13 @@ export default function App() {
           onClose={() => setSlipModalAssignment(null)}
         />
       )}
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={changePasswordModalOpen}
+        onClose={() => setChangePasswordModalOpen(false)}
+        userName={currentUser?.name || ''}
+      />
 
       {/* Printable General Summary of All Replacements Modal */}
       {summaryModalData && (
