@@ -1,0 +1,246 @@
+import React, { useEffect } from 'react';
+import { X, Printer, CheckCircle, Share2, School, Calendar, Clock, BookOpen, User } from 'lucide-react';
+import { ReplacementAssignment, Teacher, DAYS_CONFIG } from '../types';
+
+interface PrintSlipModalProps {
+  assignment: ReplacementAssignment | null;
+  absentTeacher?: Teacher;
+  substituteTeacher?: Teacher;
+  onClose: () => void;
+}
+
+export const PrintSlipModal: React.FC<PrintSlipModalProps> = ({
+  assignment,
+  absentTeacher,
+  substituteTeacher,
+  onClose
+}) => {
+  // Listen for Escape key to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  if (!assignment) return null;
+
+  const dayLabel = DAYS_CONFIG.find(d => d.id === assignment.dayOfWeek)?.labelEs || assignment.dayOfWeek;
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = `*FUNDACIÓN COLEGIO BILINGÜE DE VALLEDUPAR*
+*Asignación Oficial de Reemplazo Docente*
+📅 *Fecha:* ${dayLabel}, ${assignment.date}
+⏰ *Periodo:* Periodo ${assignment.period} (${assignment.timeRange})
+📚 *Asignatura:* ${assignment.subject}
+🏫 *Grupo:* ${assignment.grade}
+👤 *Docente Titular:* ${assignment.absentTeacherName}
+✅ *Docente Suplente Asignado:* ${assignment.substituteTeacherName}
+📝 *Instrucciones / Actividad:* ${assignment.activityPlan || 'Seguimiento curricular en aula'}
+
+Por favor presentarse puntualmente en el aula de clase.`;
+
+    const encoded = encodeURIComponent(text);
+    const phone = substituteTeacher?.phone ? substituteTeacher.phone.replace(/[^0-9]/g, '') : '';
+    const url = phone ? `https://wa.me/${phone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-neutral-200 overflow-hidden my-6 flex flex-col max-h-[92vh]"
+      >
+        {/* Modal Controls Bar (hidden during browser print) */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-neutral-50 print:hidden shrink-0">
+          <div className="flex items-center gap-2">
+            <School className="w-5 h-5 text-blue-900" />
+            <h3 className="font-semibold text-neutral-900 text-sm">
+              Volante Oficial de Reemplazo Docente
+            </h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShareWhatsApp}
+              className="px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>WhatsApp</span>
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Imprimir</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 text-xs font-bold text-neutral-800 hover:text-neutral-900 bg-neutral-200 hover:bg-neutral-300 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <X className="w-4 h-4" />
+              <span>Cerrar</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Printable Voucher Section */}
+        <div id="printable-slip" className="p-8 bg-white print:p-6 text-neutral-900 overflow-y-auto flex-1">
+          {/* Header */}
+          <div className="border-b-2 border-neutral-800 pb-5 mb-6 text-center">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full border-2 border-blue-900 bg-blue-50 flex items-center justify-center font-serif font-black text-blue-900 text-sm">
+                FCBV
+              </div>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight uppercase text-neutral-900">
+                  Fundación Colegio Bilingüe de Valledupar
+                </h1>
+                <p className="text-xs text-neutral-600 font-medium">
+                  Coordinación Académica · Año Lectivo 2026/2027
+                </p>
+              </div>
+            </div>
+            <div className="inline-block mt-2 bg-neutral-100 px-4 py-1 rounded text-xs font-semibold uppercase tracking-wider text-neutral-800 border border-neutral-200">
+              Orden Oficial de Cobertura y Reemplazo de Clase
+            </div>
+          </div>
+
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
+            <div className="border border-neutral-200 rounded-lg p-3 bg-neutral-50/50">
+              <span className="text-neutral-500 block mb-1">Docente Titular Ausente:</span>
+              <span className="font-bold text-neutral-900 text-sm block">
+                {assignment.absentTeacherName}
+              </span>
+              <span className="text-neutral-500 text-[11px] block mt-0.5">
+                {absentTeacher?.department || 'Docente Titular'}
+              </span>
+            </div>
+
+            <div className="border border-blue-200 bg-blue-50/50 rounded-lg p-3">
+              <span className="text-blue-700 block mb-1 font-medium">Docente Reemplazante Designado:</span>
+              <span className="font-bold text-blue-950 text-sm block">
+                {assignment.substituteTeacherName}
+              </span>
+              <span className="text-blue-700 text-[11px] block mt-0.5">
+                {assignment.substituteDepartment}
+              </span>
+            </div>
+          </div>
+
+          {/* Class Details Table */}
+          <table className="w-full border-collapse border border-neutral-300 text-xs mb-6">
+            <tbody>
+              <tr className="border-b border-neutral-200 bg-neutral-100/75">
+                <th className="p-2.5 text-left font-semibold text-neutral-700 w-1/3 border-r border-neutral-300">
+                  Fecha y Día:
+                </th>
+                <td className="p-2.5 font-medium text-neutral-900">
+                  {dayLabel}, {assignment.date}
+                </td>
+              </tr>
+              <tr className="border-b border-neutral-200">
+                <th className="p-2.5 text-left font-semibold text-neutral-700 border-r border-neutral-300">
+                  Periodo y Horario:
+                </th>
+                <td className="p-2.5 font-mono text-neutral-900 font-semibold">
+                  Periodo {assignment.period} · {assignment.timeRange}
+                </td>
+              </tr>
+              <tr className="border-b border-neutral-200 bg-neutral-50/50">
+                <th className="p-2.5 text-left font-semibold text-neutral-700 border-r border-neutral-300">
+                  Grado / Curso:
+                </th>
+                <td className="p-2.5 font-bold text-neutral-900">
+                  Grado {assignment.grade}
+                </td>
+              </tr>
+              <tr className="border-b border-neutral-200">
+                <th className="p-2.5 text-left font-semibold text-neutral-700 border-r border-neutral-300">
+                  Asignatura:
+                </th>
+                <td className="p-2.5 font-medium text-neutral-900">
+                  {assignment.subject}
+                </td>
+              </tr>
+              <tr>
+                <th className="p-2.5 text-left font-semibold text-neutral-700 border-r border-neutral-300">
+                  Plan de Trabajo / Indicaciones:
+                </th>
+                <td className="p-2.5 text-neutral-800 italic">
+                  {assignment.activityPlan || 'Seguimiento normal de temática programada. Mantener orden y disciplina en el aula.'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Criteria & Compatibility Note */}
+          <div className="mb-8 p-3 rounded-lg border border-neutral-200 text-[11px] text-neutral-600 bg-neutral-50/30">
+            <span className="font-semibold text-neutral-800">Criterios de Asignación Automática:</span>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+              {assignment.matchReasons.map((r, i) => (
+                <span key={i} className="inline-flex items-center gap-1">
+                  ✓ {r}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Signatures */}
+          <div className="grid grid-cols-2 gap-12 pt-6 border-t border-neutral-300 text-center text-xs">
+            <div>
+              <div className="h-14 border-b border-dashed border-neutral-400"></div>
+              <p className="font-bold text-neutral-900 mt-2">Coordinación Académica</p>
+              <p className="text-[11px] text-neutral-500">Fundación Colegio Bilingüe de Valledupar</p>
+            </div>
+            <div>
+              <div className="h-14 border-b border-dashed border-neutral-400"></div>
+              <p className="font-bold text-neutral-900 mt-2">{assignment.substituteTeacherName}</p>
+              <p className="text-[11px] text-neutral-500">Docente Reemplazante (Firma de Recibido)</p>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center text-[10px] text-neutral-400 font-mono">
+            ID de Asignación: {assignment.id} · Generado automáticamente por ReemplazaDocente
+          </div>
+        </div>
+
+        {/* Bottom Controls Bar (hidden during browser print) */}
+        <div className="px-6 py-3.5 border-t border-neutral-200 bg-neutral-50 flex items-center justify-between print:hidden shrink-0">
+          <span className="text-xs text-neutral-500 hidden sm:inline">
+            Presiona <kbd className="px-1.5 py-0.5 bg-neutral-200 rounded border border-neutral-300 font-mono text-[10px]">Esc</kbd> o haz clic en Cerrar para volver al sistema
+          </span>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Imprimir Volante</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-bold text-neutral-800 bg-neutral-200 hover:bg-neutral-300 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <X className="w-4 h-4" />
+              <span>Cerrar Ventana</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+

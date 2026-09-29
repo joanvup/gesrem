@@ -1,0 +1,6 @@
+{
+  "name": "ReemplazaDocente - Gestión de Reemplazos Docentes",
+  "description": "Sistema inteligente para la gestión y asignación de reemplazos docentes escolares a partir de horarios en PDF con cálculo automático de disponibilidades.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
