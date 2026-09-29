@@ -12,6 +12,7 @@ import { FairnessAnalytics } from './components/FairnessAnalytics';
 import { PdfLoader } from './components/PdfLoader';
 import { PrintSlipModal } from './components/PrintSlipModal';
 import { PrintSummaryModal } from './components/PrintSummaryModal';
+import { AuditAndBackup } from './components/AuditAndBackup';
 import { Teacher, AbsenceRecord, ReplacementAssignment, DayOfWeek } from './types';
 import {
   loadTeachers,
@@ -37,7 +38,7 @@ export default function App() {
   const [replacements, setReplacements] = useState<ReplacementAssignment[]>(loadReplacements);
   const [sqliteConnected, setSqliteConnected] = useState<boolean>(true);
 
-  const [activeTab, setActiveTab] = useState<'hub' | 'board' | 'schedule' | 'analytics' | 'pdf'>('hub');
+  const [activeTab, setActiveTab] = useState<'hub' | 'board' | 'schedule' | 'analytics' | 'pdf' | 'audit'>('hub');
   
   // Default to today's date in local time
   const todayStr = useMemo(() => {
@@ -57,24 +58,24 @@ export default function App() {
     title?: string;
   } | null>(null);
 
+  const reloadAllFromDb = async () => {
+    const status = await fetchDatabaseStatus();
+    setSqliteConnected(!!status?.ok);
+
+    const [dbTeachers, dbAbsences, dbReplacements] = await Promise.all([
+      fetchTeachersFromApi(),
+      fetchAbsencesFromApi(),
+      fetchReplacementsFromApi()
+    ]);
+
+    if (dbTeachers.length > 0) setTeachers(dbTeachers);
+    if (dbAbsences.length > 0) setAbsences(dbAbsences);
+    setReplacements(dbReplacements);
+  };
+
   // Initial load from SQLite Database
   useEffect(() => {
-    async function loadFromDb() {
-      const status = await fetchDatabaseStatus();
-      setSqliteConnected(!!status?.ok);
-
-      const [dbTeachers, dbAbsences, dbReplacements] = await Promise.all([
-        fetchTeachersFromApi(),
-        fetchAbsencesFromApi(),
-        fetchReplacementsFromApi()
-      ]);
-
-      if (dbTeachers.length > 0) setTeachers(dbTeachers);
-      if (dbAbsences.length > 0) setAbsences(dbAbsences);
-      if (dbReplacements.length > 0) setReplacements(dbReplacements);
-    }
-
-    loadFromDb();
+    reloadAllFromDb();
   }, []);
 
   // Compute school DayOfWeek from selectedDate
@@ -231,6 +232,10 @@ export default function App() {
             onUpdateTeachers={handleUpdateTeachers}
             onNavigateToHub={() => setActiveTab('hub')}
           />
+        )}
+
+        {activeTab === 'audit' && (
+          <AuditAndBackup onDatabaseRestored={reloadAllFromDb} />
         )}
       </main>
 

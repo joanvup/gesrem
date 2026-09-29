@@ -112,3 +112,31 @@ export interface CandidateAvailability {
   reasons: string[];
   pastReplacementsCount: number;
 }
+
+export type AuditActionType =
+  | 'CREATE'
+  | 'UPDATE_STATUS'
+  | 'DELETE'
+  | 'UPDATE_PLAN'
+  | 'RESTORE_BACKUP'
+  | 'CREATE_BACKUP'
+  | 'RESET_DATABASE';
+
+export interface AuditLogEntry {
+  id: number;
+  timestamp: string;
+  action: AuditActionType;
+  entityType: 'REPLACEMENT' | 'ABSENCE' | 'TEACHER' | 'DATABASE';
+  entityId: string;
+  userName: string;
+  details: string;
+  previousValue?: string;
+  newValue?: string;
+}
+
+export interface BackupPoint {
+  filename: string;
+  createdAt: string;
+  sizeBytes: number;
+}
+

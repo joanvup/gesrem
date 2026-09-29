@@ -1,4 +1,4 @@
-import { Teacher, AbsenceRecord, ReplacementAssignment } from '../types';
+import { Teacher, AbsenceRecord, ReplacementAssignment, AuditLogEntry, BackupPoint } from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
 
 const STORAGE_KEYS = {
@@ -177,6 +177,93 @@ export async function resetDatabaseOnApi(): Promise<boolean> {
     console.warn('Failed to reset SQLite API', err);
     return false;
   }
+}
+
+// ----------------- Audit Logs & Backups API -----------------
+
+export async function fetchAuditLogsApi(limit = 200): Promise<AuditLogEntry[]> {
+  try {
+    const res = await fetch(`/api/audit-logs?limit=${limit}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Failed to fetch audit logs', err);
+  }
+  return [];
+}
+
+export async function createLocalBackupApi(userName = 'Coordinación Académica'): Promise<string | null> {
+  try {
+    const res = await fetch('/api/backup/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userName })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.filename;
+    }
+  } catch (err) {
+    console.error('Failed to create local backup', err);
+  }
+  return null;
+}
+
+export async function fetchLocalBackupsListApi(): Promise<BackupPoint[]> {
+  try {
+    const res = await fetch('/api/backup/list');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Failed to list backups', err);
+  }
+  return [];
+}
+
+export async function restoreLocalBackupApi(filename: string, userName = 'Coordinación Académica'): Promise<boolean> {
+  try {
+    const res = await fetch('/api/backup/restore-local', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, userName })
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('Failed to restore local backup', err);
+    return false;
+  }
+}
+
+export async function restoreUploadBackupApi(file: File, userName = 'Coordinación Académica'): Promise<boolean> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64Data = btoa(binary);
+
+    const res = await fetch('/api/backup/restore-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        base64Data,
+        filename: file.name,
+        userName
+      })
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('Failed to restore uploaded backup', err);
+    return false;
+  }
+}
+
+export function downloadSqliteBackup(): void {
+  window.open('/api/backup/download', '_blank');
 }
 
 // ----------------- Local Storage Cache -----------------

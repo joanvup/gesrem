@@ -12,6 +12,12 @@ Sistema de gestión, asignación algorítmica y control operativo de reemplazos 
 - **Asignación Automática Inteligente**: Algoritmo de ponderación que prioriza profesores de la misma sección educativa, misma asignatura o departamento, grados conocidos y menor carga previa acumulada para garantizar equidad.
 - **Tablero Diario Operativo**: Monitoreo en tiempo real de faltas reportadas, suplencias activas, estado (Confirmado / Borrador) y filtros por periodo y docente.
 - **Persistencia con SQLite**: Base de datos relacional integrada en el archivo `data/school_database.sqlite` servida mediante una API REST en Node.js/Express.
+- **Log de Auditoría Inmutable**: Registro automático de quién editó, qué cambió y la fecha/hora exacta para todas las creaciones, cambios de estado y eliminaciones de suplencias.
+- **Sistema Integrado de Backup y Restauración**:
+  - Descarga del archivo SQLite actual (`.sqlite`) directamente desde la interfaz.
+  - Generación de puntos de restauración automáticos en `data/backups/`.
+  - Restauración segura en un solo clic con creación preventiva de respaldo de seguridad.
+  - Subida de archivos `.sqlite` desde la computadora.
 - **Planillas Oficiales para Impresión**:
   - Imprimir planilla exclusiva para Coordinación de Primaria (1° a 5°).
   - Imprimir planilla exclusiva para Coordinación de Bachillerato (6° a 11°).

@@ -1,13 +1,22 @@
 import fs from 'fs';
 import path from 'path';
 import initSqlJs, { Database } from 'sql.js';
-import { Teacher, ScheduleSlot, AbsenceRecord, ReplacementAssignment } from '../types';
+import {
+  Teacher,
+  ScheduleSlot,
+  AbsenceRecord,
+  ReplacementAssignment,
+  AuditLogEntry,
+  BackupPoint
+} from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
+const BACKUPS_DIR = path.join(DB_DIR, 'backups');
 const DB_FILE = path.join(DB_DIR, 'school_database.sqlite');
 
 let dbInstance: Database | null = null;
+let SQL_MODULE: any = null;
 
 export async function getDatabase(): Promise<Database> {
   if (dbInstance) return dbInstance;
@@ -15,24 +24,31 @@ export async function getDatabase(): Promise<Database> {
   if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR, { recursive: true });
   }
+  if (!fs.existsSync(BACKUPS_DIR)) {
+    fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+  }
 
-  const SQL = await initSqlJs();
+  if (!SQL_MODULE) {
+    SQL_MODULE = await initSqlJs();
+  }
 
+  let db: Database;
   if (fs.existsSync(DB_FILE)) {
     try {
       const fileBuffer = fs.readFileSync(DB_FILE);
-      dbInstance = new SQL.Database(fileBuffer);
+      db = new SQL_MODULE.Database(fileBuffer);
     } catch (err) {
       console.warn('Could not read existing SQLite file, creating new database', err);
-      dbInstance = new SQL.Database();
+      db = new SQL_MODULE.Database();
     }
   } else {
-    dbInstance = new SQL.Database();
+    db = new SQL_MODULE.Database();
   }
 
-  initTables(dbInstance);
-  saveDatabase(dbInstance);
-  return dbInstance;
+  dbInstance = db;
+  initTables(db);
+  saveDatabase(db);
+  return db;
 }
 
 export function saveDatabase(db: Database): void {
@@ -43,6 +59,16 @@ export function saveDatabase(db: Database): void {
   } catch (err) {
     console.error('Error saving SQLite database to file', err);
   }
+}
+
+export function getRawDatabaseBuffer(): Buffer {
+  if (fs.existsSync(DB_FILE)) {
+    return fs.readFileSync(DB_FILE);
+  }
+  if (dbInstance) {
+    return Buffer.from(dbInstance.export());
+  }
+  return Buffer.from([]);
 }
 
 function initTables(db: Database): void {
@@ -115,6 +141,21 @@ function initTables(db: Database): void {
     );
   `);
 
+  // 5. Audit logs table (who edited, what changed, exact timestamp)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp TEXT NOT NULL,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      user_name TEXT NOT NULL,
+      details TEXT NOT NULL,
+      previous_value TEXT,
+      new_value TEXT
+    );
+  `);
+
   // Check if teachers table is empty; if so, seed from INITIAL_TEACHERS
   const countResult = db.exec('SELECT COUNT(*) as count FROM teachers');
   const count = countResult[0]?.values[0]?.[0] as number;
@@ -144,7 +185,68 @@ export function seedInitialData(db: Database): void {
   saveDatabase(db);
 }
 
-// Queries
+// ----------------- Audit Logs Operations -----------------
+
+export async function addAuditLog(entry: {
+  action: AuditLogEntry['action'];
+  entityType: AuditLogEntry['entityType'];
+  entityId: string;
+  userName?: string;
+  details: string;
+  previousValue?: string;
+  newValue?: string;
+}): Promise<void> {
+  const db = await getDatabase();
+  const timestamp = new Date().toISOString();
+  const user = entry.userName || 'Coordinación Académica';
+
+  db.run(
+    `INSERT INTO audit_logs (timestamp, action, entity_type, entity_id, user_name, details, previous_value, new_value)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      timestamp,
+      entry.action,
+      entry.entityType,
+      entry.entityId,
+      user,
+      entry.details,
+      entry.previousValue || null,
+      entry.newValue || null
+    ]
+  );
+  saveDatabase(db);
+}
+
+export async function getAuditLogsFromDb(limit: number = 200): Promise<AuditLogEntry[]> {
+  const db = await getDatabase();
+  const res = db.exec(`SELECT * FROM audit_logs ORDER BY id DESC LIMIT ${limit}`);
+  if (!res || res.length === 0) return [];
+
+  const rows = res[0].values;
+  const cols = res[0].columns;
+
+  return rows.map(row => {
+    const obj: any = {};
+    cols.forEach((col, idx) => {
+      obj[col] = row[idx];
+    });
+
+    return {
+      id: obj.id,
+      timestamp: obj.timestamp,
+      action: obj.action,
+      entityType: obj.entity_type,
+      entityId: obj.entity_id,
+      userName: obj.user_name,
+      details: obj.details,
+      previousValue: obj.previous_value,
+      newValue: obj.new_value
+    };
+  });
+}
+
+// ----------------- Teacher Queries -----------------
+
 export async function getAllTeachersFromDb(): Promise<Teacher[]> {
   const db = await getDatabase();
   const teachersResult = db.exec('SELECT * FROM teachers ORDER BY name ASC');
@@ -199,7 +301,7 @@ export async function getAllTeachersFromDb(): Promise<Teacher[]> {
   return Object.values(teachersMap);
 }
 
-export async function setAllTeachersInDb(teachers: Teacher[]): Promise<void> {
+export async function setAllTeachersInDb(teachers: Teacher[], userName = 'Coordinación Académica'): Promise<void> {
   const db = await getDatabase();
   db.run('DELETE FROM schedule_slots');
   db.run('DELETE FROM teachers');
@@ -219,7 +321,16 @@ export async function setAllTeachersInDb(teachers: Teacher[]): Promise<void> {
   }
 
   saveDatabase(db);
+  await addAuditLog({
+    action: 'CREATE',
+    entityType: 'TEACHER',
+    entityId: 'all_teachers',
+    userName,
+    details: `Actualizada la base de datos de docentes con ${teachers.length} profesores y sus mallas horarias.`
+  });
 }
+
+// ----------------- Absence Queries -----------------
 
 export async function getAllAbsencesFromDb(): Promise<AbsenceRecord[]> {
   const db = await getDatabase();
@@ -251,7 +362,7 @@ export async function getAllAbsencesFromDb(): Promise<AbsenceRecord[]> {
   });
 }
 
-export async function addAbsenceToDb(absence: AbsenceRecord): Promise<void> {
+export async function addAbsenceToDb(absence: AbsenceRecord, userName = 'Coordinación Académica'): Promise<void> {
   const db = await getDatabase();
   db.run(
     `INSERT INTO absences (id, teacher_id, teacher_name, date, day_of_week, is_full_day, periods, reason, notes, status, created_at)
@@ -271,7 +382,17 @@ export async function addAbsenceToDb(absence: AbsenceRecord): Promise<void> {
     ]
   );
   saveDatabase(db);
+
+  await addAuditLog({
+    action: 'CREATE',
+    entityType: 'ABSENCE',
+    entityId: absence.id,
+    userName,
+    details: `Reportada inasistencia de ${absence.teacherName} para el día ${absence.date} (${absence.reason}). Periodos: ${absence.periods.join(', ')}.`
+  });
 }
+
+// ----------------- Replacement Queries -----------------
 
 export async function getAllReplacementsFromDb(): Promise<ReplacementAssignment[]> {
   const db = await getDatabase();
@@ -310,7 +431,10 @@ export async function getAllReplacementsFromDb(): Promise<ReplacementAssignment[
   });
 }
 
-export async function addReplacementsToDb(replacements: ReplacementAssignment[]): Promise<void> {
+export async function addReplacementsToDb(
+  replacements: ReplacementAssignment[],
+  userName = 'Coordinación Académica'
+): Promise<void> {
   const db = await getDatabase();
   for (const r of replacements) {
     db.run(
@@ -338,30 +462,196 @@ export async function addReplacementsToDb(replacements: ReplacementAssignment[])
         r.assignedAt
       ]
     );
+
+    // Audit log for this assignment
+    await addAuditLog({
+      action: 'CREATE',
+      entityType: 'REPLACEMENT',
+      entityId: r.id,
+      userName,
+      details: `Asignado reemplazo para Periodo ${r.period} (${r.grade} · ${r.subject}). Titular: ${r.absentTeacherName} -> Suplente: ${r.substituteTeacherName} (${r.date}).`,
+      newValue: JSON.stringify({
+        substitute: r.substituteTeacherName,
+        status: r.status,
+        plan: r.activityPlan
+      })
+    });
   }
   saveDatabase(db);
 }
 
-export async function toggleReplacementStatusInDb(id: string): Promise<string> {
+export async function toggleReplacementStatusInDb(id: string, userName = 'Coordinación Académica'): Promise<string> {
   const db = await getDatabase();
-  const cur = db.exec('SELECT status FROM replacements WHERE id = ?', [id]);
-  const currentStatus = cur[0]?.values[0]?.[0] as string;
+  const cur = db.exec(
+    'SELECT status, substitute_teacher_name, absent_teacher_name, period, grade, subject, date FROM replacements WHERE id = ?',
+    [id]
+  );
+  if (!cur || cur.length === 0 || !cur[0].values[0]) {
+    throw new Error('Replacement not found');
+  }
+
+  const currentStatus = cur[0].values[0][0] as string;
+  const subName = cur[0].values[0][1] as string;
+  const period = cur[0].values[0][3] as number;
+  const grade = cur[0].values[0][4] as string;
+  const subject = cur[0].values[0][5] as string;
+  const date = cur[0].values[0][6] as string;
+
   const newStatus = currentStatus === 'confirmed' ? 'draft' : 'confirmed';
 
   db.run('UPDATE replacements SET status = ? WHERE id = ?', [newStatus, id]);
   saveDatabase(db);
+
+  await addAuditLog({
+    action: 'UPDATE_STATUS',
+    entityType: 'REPLACEMENT',
+    entityId: id,
+    userName,
+    details: `Cambio de estado para suplencia de ${subName} (Periodo ${period}, Grado ${grade}, ${subject} · ${date}): ${currentStatus === 'confirmed' ? 'Confirmado' : 'Borrador'} ➔ ${newStatus === 'confirmed' ? 'Confirmado' : 'Borrador'}.`,
+    previousValue: currentStatus,
+    newValue: newStatus
+  });
+
   return newStatus;
 }
 
-export async function deleteReplacementFromDb(id: string): Promise<void> {
+export async function deleteReplacementFromDb(id: string, userName = 'Coordinación Académica'): Promise<void> {
   const db = await getDatabase();
+  const cur = db.exec(
+    'SELECT substitute_teacher_name, absent_teacher_name, period, grade, subject, date FROM replacements WHERE id = ?',
+    [id]
+  );
+  const repInfo = cur?.[0]?.values?.[0];
+  const desc = repInfo
+    ? `Periodo ${repInfo[2]} (${repInfo[3]} - ${repInfo[4]}), Titular: ${repInfo[1]}, Suplente: ${repInfo[0]}, Fecha: ${repInfo[5]}`
+    : `ID: ${id}`;
+
   db.run('DELETE FROM replacements WHERE id = ?', [id]);
   saveDatabase(db);
+
+  await addAuditLog({
+    action: 'DELETE',
+    entityType: 'REPLACEMENT',
+    entityId: id,
+    userName,
+    details: `Eliminada la asignación de reemplazo: ${desc}.`
+  });
 }
 
-export async function resetDatabaseToDefault(): Promise<void> {
+export async function resetDatabaseToDefault(userName = 'Coordinación Académica'): Promise<void> {
   const db = await getDatabase();
   db.run('DELETE FROM replacements');
   db.run('DELETE FROM absences');
   seedInitialData(db);
+
+  await addAuditLog({
+    action: 'RESET_DATABASE',
+    entityType: 'DATABASE',
+    entityId: 'database',
+    userName,
+    details: 'Base de datos restaurada al conjunto inicial oficial de Valledupar 2026/2027.'
+  });
+}
+
+// ----------------- Backup and Restore Operations -----------------
+
+export async function createLocalBackup(userName = 'Coordinación Académica'): Promise<string> {
+  if (!fs.existsSync(BACKUPS_DIR)) {
+    fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+  }
+
+  const now = new Date();
+  const datePart = now.toISOString().replace(/[-:T]/g, '_').split('.')[0];
+  const backupFileName = `school_database_backup_${datePart}.sqlite`;
+  const backupPath = path.join(BACKUPS_DIR, backupFileName);
+
+  const buffer = getRawDatabaseBuffer();
+  fs.writeFileSync(backupPath, buffer);
+
+  await addAuditLog({
+    action: 'CREATE_BACKUP',
+    entityType: 'DATABASE',
+    entityId: backupFileName,
+    userName,
+    details: `Punto de restauración creado: ${backupFileName} (${(buffer.length / 1024).toFixed(1)} KB).`
+  });
+
+  return backupFileName;
+}
+
+export async function listLocalBackups(): Promise<BackupPoint[]> {
+  if (!fs.existsSync(BACKUPS_DIR)) {
+    fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+    return [];
+  }
+
+  const files = fs.readdirSync(BACKUPS_DIR).filter(f => f.endsWith('.sqlite'));
+  const backups: BackupPoint[] = [];
+
+  for (const f of files) {
+    const fullPath = path.join(BACKUPS_DIR, f);
+    const stats = fs.statSync(fullPath);
+    backups.push({
+      filename: f,
+      createdAt: stats.mtime.toISOString(),
+      sizeBytes: stats.size
+    });
+  }
+
+  // Sort descending by creation date
+  return backups.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export async function restoreFromLocalBackup(
+  filename: string,
+  userName = 'Coordinación Académica'
+): Promise<boolean> {
+  const backupPath = path.join(BACKUPS_DIR, filename);
+  if (!fs.existsSync(backupPath)) {
+    throw new Error(`El archivo de respaldo ${filename} no existe.`);
+  }
+
+  // Before restoring, create an automatic safety backup of current state
+  await createLocalBackup(`Seguridad Pre-Restauración (${userName})`);
+
+  const fileBuffer = fs.readFileSync(backupPath);
+  await restoreFromSqliteBuffer(fileBuffer, userName, `Restaurado desde archivo local ${filename}`);
+  return true;
+}
+
+export async function restoreFromSqliteBuffer(
+  buffer: Buffer,
+  userName = 'Coordinación Académica',
+  reason = 'Copia de seguridad subida por el usuario'
+): Promise<boolean> {
+  if (!SQL_MODULE) {
+    SQL_MODULE = await initSqlJs();
+  }
+
+  try {
+    const testDb = new SQL_MODULE.Database(buffer);
+    // Verify it is a valid sqlite database by checking teachers table or master
+    const testRes = testDb.exec("SELECT count(*) FROM sqlite_master WHERE type='table'");
+    if (!testRes || testRes.length === 0) {
+      throw new Error('El archivo no es una base de datos SQLite válida.');
+    }
+
+    // Overwrite the DB file
+    fs.writeFileSync(DB_FILE, buffer);
+    dbInstance = testDb;
+    initTables(testDb);
+
+    await addAuditLog({
+      action: 'RESTORE_BACKUP',
+      entityType: 'DATABASE',
+      entityId: 'database',
+      userName,
+      details: `Base de datos restaurada con éxito (${reason}). Tamaño: ${(buffer.length / 1024).toFixed(1)} KB.`
+    });
+
+    return true;
+  } catch (err: any) {
+    console.error('Failed to restore database from buffer', err);
+    throw new Error(`Error restaurando base de datos: ${err.message}`);
+  }
 }
