@@ -173,12 +173,12 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
         className="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-neutral-200 overflow-hidden my-6 flex flex-col max-h-[92vh]"
       >
         {/* Modal Controls Bar (hidden during print) */}
-        <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 print:hidden shrink-0 space-y-3">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 bg-neutral-50 print:hidden shrink-0 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <School className="w-5 h-5 text-blue-900" />
+            <div className="flex items-center gap-2 min-w-0">
+              <School className="w-5 h-5 text-blue-900 shrink-0" />
               <div>
-                <h3 className="font-bold text-neutral-900 text-sm">
+                <h3 className="font-bold text-neutral-900 text-xs sm:text-sm truncate">
                   {title}
                 </h3>
                 <p className="text-xs text-neutral-500">
@@ -187,37 +187,37 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
               <button
                 onClick={handleShareSummary}
-                className="px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                <span>WhatsApp</span>
+                <span className="hidden xs:inline">WhatsApp</span>
               </button>
               <button
                 onClick={handlePrint}
-                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                className="px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
               >
-                <Printer className="w-4 h-4" />
+                <Printer className="w-3.5 h-3.5" />
                 <span>Imprimir Planilla</span>
               </button>
               <button
                 onClick={onClose}
-                className="px-3 py-1.5 text-xs font-bold text-neutral-800 hover:text-neutral-900 bg-neutral-200 hover:bg-neutral-300 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-neutral-800 hover:text-neutral-900 bg-neutral-200 hover:bg-neutral-300 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
               >
                 <X className="w-4 h-4" />
-                <span>Cerrar</span>
+                <span className="hidden sm:inline">Cerrar</span>
               </button>
             </div>
           </div>
 
           {/* Section Filter Pills for Printing */}
-          <div className="flex items-center gap-1 pt-1 border-t border-neutral-200">
+          <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-neutral-200">
             <span className="text-xs text-neutral-500 font-medium mr-1">Filtrar para impresión:</span>
             <button
               onClick={() => setSelectedSection('all')}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                 selectedSection === 'all'
                   ? 'bg-neutral-900 text-white shadow-2xs'
                   : 'text-neutral-600 hover:bg-neutral-200'
@@ -227,23 +227,23 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
             </button>
             <button
               onClick={() => setSelectedSection('Primaria')}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                 selectedSection === 'Primaria'
                   ? 'bg-amber-100 text-amber-950 font-bold border border-amber-300 shadow-2xs'
                   : 'text-neutral-600 hover:bg-neutral-200'
               }`}
             >
-              🎒 Primaria (Grados 1 a 5) · {primariaAssignments.length}
+              🎒 Primaria ({primariaAssignments.length})
             </button>
             <button
               onClick={() => setSelectedSection('Bachillerato')}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                 selectedSection === 'Bachillerato'
                   ? 'bg-indigo-100 text-indigo-950 font-bold border border-indigo-300 shadow-2xs'
                   : 'text-neutral-600 hover:bg-neutral-200'
               }`}
             >
-              🎓 Bachillerato (Grados 6 a 11) · {bachilleratoAssignments.length}
+              🎓 Bachillerato ({bachilleratoAssignments.length})
             </button>
           </div>
         </div>

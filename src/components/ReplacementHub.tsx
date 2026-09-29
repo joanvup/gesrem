@@ -731,10 +731,10 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                     {modalCandidates.freeCandidates.map(cand => (
                       <div
                         key={cand.teacher.id}
-                        className="p-3.5 hover:bg-neutral-50 flex items-center justify-between gap-3 transition-colors"
+                        className="p-3.5 hover:bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
                       >
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-neutral-900 text-xs">
                               {cand.teacher.name}
                             </span>
@@ -760,9 +760,9 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
                         <button
                           onClick={() => handleSelectCandidateForSlot(activeSlotModal, cand)}
-                          className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors cursor-pointer shrink-0 shadow-xs"
+                          className="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors cursor-pointer shrink-0 shadow-xs min-h-[38px] text-center"
                         >
-                          Asignar
+                          Asignar Suplente
                         </button>
                       </div>
                     ))}

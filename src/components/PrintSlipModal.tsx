@@ -63,34 +63,35 @@ Por favor presentarse puntualmente en el aula de clase.`;
         className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-neutral-200 overflow-hidden my-6 flex flex-col max-h-[92vh]"
       >
         {/* Modal Controls Bar (hidden during browser print) */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-neutral-50 print:hidden shrink-0">
-          <div className="flex items-center gap-2">
-            <School className="w-5 h-5 text-blue-900" />
-            <h3 className="font-semibold text-neutral-900 text-sm">
-              Volante Oficial de Reemplazo Docente
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 bg-neutral-50 print:hidden shrink-0 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <School className="w-5 h-5 text-blue-900 shrink-0" />
+            <h3 className="font-semibold text-neutral-900 text-xs sm:text-sm truncate">
+              <span className="sm:hidden">Volante de Reemplazo</span>
+              <span className="hidden sm:inline">Volante Oficial de Reemplazo Docente</span>
             </h3>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handleShareWhatsApp}
-              className="px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>WhatsApp</span>
+              <span className="hidden xs:inline">WhatsApp</span>
             </button>
             <button
               onClick={handlePrint}
-              className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Imprimir</span>
             </button>
             <button
               onClick={onClose}
-              className="px-3 py-1.5 text-xs font-bold text-neutral-800 hover:text-neutral-900 bg-neutral-200 hover:bg-neutral-300 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-neutral-800 hover:text-neutral-900 bg-neutral-200 hover:bg-neutral-300 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
             >
               <X className="w-4 h-4" />
-              <span>Cerrar</span>
+              <span className="hidden sm:inline">Cerrar</span>
             </button>
           </div>
         </div>

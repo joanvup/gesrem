@@ -169,132 +169,242 @@ Agradecemos su puntual asistencia en el salón.`;
             No hay reemplazos programados para esta sección en la fecha seleccionada.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-medium">
-                  <th className="py-2.5 px-4 w-28">Periodo & Hora</th>
-                  <th className="py-2.5 px-4 w-36">Clase / Grado</th>
-                  <th className="py-2.5 px-4">Docente Titular (Ausente)</th>
-                  <th className="py-2.5 px-4">Docente Reemplazante</th>
-                  <th className="py-2.5 px-4">Instrucciones / Plan</th>
-                  <th className="py-2.5 px-4 text-center w-28">Estado</th>
-                  <th className="py-2.5 px-4 text-right w-28">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {items.map(rep => {
-                  const absentTeacher = teachers.find(t => t.id === rep.absentTeacherId);
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-medium">
+                    <th className="py-2.5 px-4 w-28">Periodo & Hora</th>
+                    <th className="py-2.5 px-4 w-36">Clase / Grado</th>
+                    <th className="py-2.5 px-4">Docente Titular (Ausente)</th>
+                    <th className="py-2.5 px-4">Docente Reemplazante</th>
+                    <th className="py-2.5 px-4">Instrucciones / Plan</th>
+                    <th className="py-2.5 px-4 text-center w-28">Estado</th>
+                    <th className="py-2.5 px-4 text-right w-28">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {items.map(rep => {
+                    const absentTeacher = teachers.find(t => t.id === rep.absentTeacherId);
 
-                  return (
-                    <tr key={rep.id} className="hover:bg-neutral-50/60 transition-colors">
-                      {/* Period & Hour */}
-                      <td className="py-3 px-4">
-                        <div className="font-mono font-bold text-neutral-900">
-                          Periodo {rep.period}
-                        </div>
-                        <div className="font-mono text-[11px] text-neutral-500">
-                          {rep.timeRange}
-                        </div>
-                        {viewScope === 'all' && (
-                          <div className="text-[10px] text-neutral-400 mt-0.5">
-                            {rep.date}
+                    return (
+                      <tr key={rep.id} className="hover:bg-neutral-50/60 transition-colors">
+                        {/* Period & Hour */}
+                        <td className="py-3 px-4">
+                          <div className="font-mono font-bold text-neutral-900">
+                            Periodo {rep.period}
                           </div>
-                        )}
-                      </td>
+                          <div className="font-mono text-[11px] text-neutral-500">
+                            {rep.timeRange}
+                          </div>
+                          {viewScope === 'all' && (
+                            <div className="text-[10px] text-neutral-400 mt-0.5">
+                              {rep.date}
+                            </div>
+                          )}
+                        </td>
 
-                      {/* Class / Group */}
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-neutral-900">
-                          {rep.subject}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="px-2 py-0.2 bg-blue-50 text-blue-900 border border-blue-200 font-bold rounded text-[11px]">
-                            Grado {rep.grade}
-                          </span>
-                        </div>
-                      </td>
+                        {/* Class / Group */}
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-neutral-900">
+                            {rep.subject}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="px-2 py-0.2 bg-blue-50 text-blue-900 border border-blue-200 font-bold rounded text-[11px]">
+                              Grado {rep.grade}
+                            </span>
+                          </div>
+                        </td>
 
-                      {/* Absent Teacher */}
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-neutral-900">
+                        {/* Absent Teacher */}
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-neutral-900">
+                            {rep.absentTeacherName}
+                          </div>
+                          <div className="text-[11px] text-neutral-500">
+                            {absentTeacher?.department || 'Titular'}
+                          </div>
+                        </td>
+
+                        {/* Substitute Teacher */}
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+                            <UserCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>{rep.substituteTeacherName}</span>
+                          </div>
+                          <div className="text-[11px] text-neutral-500">
+                            {rep.substituteDepartment}
+                          </div>
+                        </td>
+
+                        {/* Match & Plan */}
+                        <td className="py-3 px-4 max-w-xs">
+                          <div className="text-[11px] text-neutral-700 italic truncate" title={rep.activityPlan}>
+                            {rep.activityPlan || 'Seguimiento de clase'}
+                          </div>
+                          <div className="text-[10px] text-neutral-400 mt-0.5 truncate">
+                            {rep.matchReasons.join(' · ')}
+                          </div>
+                        </td>
+
+                        {/* Status Toggle */}
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={() => onToggleStatus(rep.id)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                              rep.status === 'confirmed'
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-neutral-100 text-neutral-700 border border-neutral-200'
+                            }`}
+                          >
+                            <CheckCircle className="w-3 h-3 text-emerald-600" />
+                            <span>{rep.status === 'confirmed' ? 'Confirmado' : 'Borrador'}</span>
+                          </button>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => onOpenSlip(rep)}
+                              title="Ver e imprimir volante individual"
+                              className="p-1.5 text-neutral-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors cursor-pointer"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={() => handleShareWhatsApp(rep)}
+                              title="Enviar aviso por WhatsApp"
+                              className="p-1.5 text-neutral-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                            >
+                              <Share2 className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={() => onDeleteReplacement(rep.id)}
+                              title="Eliminar asignación"
+                              className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y divide-neutral-100">
+              {items.map(rep => {
+                const absentTeacher = teachers.find(t => t.id === rep.absentTeacherId);
+
+                return (
+                  <div key={rep.id} className="p-4 space-y-3 hover:bg-neutral-50/50 transition-colors">
+                    {/* Top Row: Period, Grade & Status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-xs bg-neutral-900 text-white px-2 py-0.5 rounded">
+                          Periodo {rep.period}
+                        </span>
+                        <span className="font-mono text-[11px] text-neutral-500">
+                          {rep.timeRange}
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-900 border border-blue-200 font-bold rounded text-xs">
+                        Grado {rep.grade}
+                      </span>
+                    </div>
+
+                    {/* Class & Subject */}
+                    <div>
+                      <h4 className="font-bold text-neutral-900 text-sm">
+                        {rep.subject}
+                      </h4>
+                      {rep.activityPlan && (
+                        <p className="text-xs text-neutral-600 italic mt-0.5 bg-neutral-50 p-2 rounded border border-neutral-150">
+                          📝 "{rep.activityPlan}"
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Teachers Assignment Row */}
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-neutral-50/80 p-2.5 rounded-lg border border-neutral-200">
+                      <div>
+                        <span className="text-[10px] text-neutral-400 block font-semibold uppercase">
+                          Docente Ausente
+                        </span>
+                        <span className="font-medium text-neutral-800 block truncate">
                           {rep.absentTeacherName}
-                        </div>
-                        <div className="text-[11px] text-neutral-500">
+                        </span>
+                        <span className="text-[10px] text-neutral-500">
                           {absentTeacher?.department || 'Titular'}
-                        </div>
-                      </td>
+                        </span>
+                      </div>
 
-                      {/* Substitute Teacher */}
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-emerald-950 flex items-center gap-1.5">
-                          <UserCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span>{rep.substituteTeacherName}</span>
-                        </div>
-                        <div className="text-[11px] text-neutral-500">
+                      <div className="border-l border-neutral-200 pl-2.5">
+                        <span className="text-[10px] text-emerald-700 block font-semibold uppercase flex items-center gap-1">
+                          <UserCheck className="w-3 h-3" />
+                          Reemplazante
+                        </span>
+                        <span className="font-bold text-emerald-950 block truncate">
+                          {rep.substituteTeacherName}
+                        </span>
+                        <span className="text-[10px] text-neutral-500">
                           {rep.substituteDepartment}
-                        </div>
-                      </td>
+                        </span>
+                      </div>
+                    </div>
 
-                      {/* Match & Plan */}
-                      <td className="py-3 px-4 max-w-xs">
-                        <div className="text-[11px] text-neutral-700 italic truncate" title={rep.activityPlan}>
-                          {rep.activityPlan || 'Seguimiento de clase'}
-                        </div>
-                        <div className="text-[10px] text-neutral-400 mt-0.5 truncate">
-                          {rep.matchReasons.join(' · ')}
-                        </div>
-                      </td>
+                    {/* Action buttons row with touch targets */}
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <button
+                        onClick={() => onToggleStatus(rep.id)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer min-h-[38px] ${
+                          rep.status === 'confirmed'
+                            ? 'bg-emerald-50 text-emerald-900 border border-emerald-300'
+                            : 'bg-neutral-100 text-neutral-700 border border-neutral-300'
+                        }`}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{rep.status === 'confirmed' ? 'Confirmado' : 'Borrador'}</span>
+                      </button>
 
-                      {/* Status Toggle */}
-                      <td className="py-3 px-4 text-center">
+                      <div className="flex items-center gap-1">
                         <button
-                          onClick={() => onToggleStatus(rep.id)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
-                            rep.status === 'confirmed'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-neutral-100 text-neutral-700 border border-neutral-200'
-                          }`}
+                          onClick={() => onOpenSlip(rep)}
+                          title="Imprimir volante"
+                          className="p-2 text-neutral-700 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-lg transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
                         >
-                          <CheckCircle className="w-3 h-3 text-emerald-600" />
-                          <span>{rep.status === 'confirmed' ? 'Confirmado' : 'Borrador'}</span>
+                          <Printer className="w-4 h-4 text-blue-900" />
                         </button>
-                      </td>
 
-                      {/* Actions */}
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => onOpenSlip(rep)}
-                            title="Ver e imprimir volante individual"
-                            className="p-1.5 text-neutral-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors cursor-pointer"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </button>
+                        <button
+                          onClick={() => handleShareWhatsApp(rep)}
+                          title="WhatsApp"
+                          className="p-2 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </button>
 
-                          <button
-                            onClick={() => handleShareWhatsApp(rep)}
-                            title="Enviar aviso por WhatsApp"
-                            className="p-1.5 text-neutral-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
-                          >
-                            <Share2 className="w-4 h-4" />
-                          </button>
-
-                          <button
-                            onClick={() => onDeleteReplacement(rep.id)}
-                            title="Eliminar asignación"
-                            className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <button
+                          onClick={() => onDeleteReplacement(rep.id)}
+                          title="Eliminar"
+                          className="p-2 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     );

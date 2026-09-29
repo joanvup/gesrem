@@ -157,20 +157,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className={`w-1.5 h-1.5 rounded-full ${sqliteConnected ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
             </button>
 
-            <div className="hidden lg:flex items-center gap-2 text-xs border border-neutral-200 rounded-lg px-2.5 py-1.5 bg-neutral-50">
+            <div className="hidden md:flex items-center gap-2 text-xs border border-neutral-200 rounded-lg px-2.5 py-1.5 bg-neutral-50">
               <span className="text-neutral-500 font-medium">{currentDayConfig?.labelEs}</span>
               <span className="text-neutral-300">|</span>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="bg-transparent border-none text-neutral-700 font-mono text-xs focus:outline-none"
+                className="bg-transparent border-none text-neutral-700 font-mono text-xs focus:outline-none cursor-pointer"
               />
             </div>
 
             <button
               onClick={onOpenNewAbsence}
-              className="px-3.5 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap cursor-pointer"
+              className="px-3 sm:px-3.5 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap cursor-pointer shrink-0"
             >
               <PlusCircle className="w-4 h-4" />
               <span className="hidden sm:inline">+ Reportar Falta</span>
@@ -179,13 +179,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* User Session Profile & Menu */}
             {currentUser && (
-              <div className="relative">
+              <div className="relative shrink-0">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-1.5 p-1 rounded-lg hover:bg-neutral-100 transition-colors border border-neutral-200 cursor-pointer bg-neutral-50"
+                  className="flex items-center gap-1.5 p-1 rounded-lg hover:bg-neutral-100 transition-colors border border-neutral-200 cursor-pointer bg-neutral-50 min-h-[36px]"
                   title={`Conectado como ${currentUser.name}`}
                 >
-                  <div className="w-7 h-7 rounded-md bg-blue-900 text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-blue-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
                     {currentUser.username.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="hidden xl:block text-left text-[11px] leading-tight pr-1">
@@ -201,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 {/* Dropdown Menu */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-neutral-200 py-1.5 z-50 text-xs">
+                  <div className="absolute right-0 mt-1 w-56 max-w-[calc(100vw-24px)] bg-white rounded-xl shadow-xl border border-neutral-200 py-1.5 z-50 text-xs">
                     <div className="px-3 py-2 border-b border-neutral-100">
                       <span className="font-bold text-neutral-900 block truncate">
                         {currentUser.name}
@@ -253,56 +253,79 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Mobile subnav */}
-      <div className="md:hidden border-t border-neutral-100 flex overflow-x-auto px-4 py-2 gap-1 bg-neutral-50">
-        <button
-          onClick={() => setActiveTab('hub')}
-          className={`px-2.5 py-1 text-xs font-medium rounded whitespace-nowrap ${
-            activeTab === 'hub' ? 'bg-white text-blue-800 shadow-xs' : 'text-neutral-600'
-          }`}
-        >
-          Asignación
-        </button>
-        <button
-          onClick={() => setActiveTab('board')}
-          className={`px-2.5 py-1 text-xs font-medium rounded whitespace-nowrap ${
-            activeTab === 'board' ? 'bg-white text-blue-800 shadow-xs' : 'text-neutral-600'
-          }`}
-        >
-          Tablero ({activeReplacementsCount})
-        </button>
-        <button
-          onClick={() => setActiveTab('schedule')}
-          className={`px-2.5 py-1 text-xs font-medium rounded whitespace-nowrap ${
-            activeTab === 'schedule' ? 'bg-white text-blue-800 shadow-xs' : 'text-neutral-600'
-          }`}
-        >
-          Horarios
-        </button>
-        <button
-          onClick={() => setActiveTab('analytics')}
-          className={`px-2.5 py-1 text-xs font-medium rounded whitespace-nowrap ${
-            activeTab === 'analytics' ? 'bg-white text-blue-800 shadow-xs' : 'text-neutral-600'
-          }`}
-        >
-          Equidad
-        </button>
-        <button
-          onClick={() => setActiveTab('pdf')}
-          className={`px-2.5 py-1 text-xs font-medium rounded whitespace-nowrap ${
-            activeTab === 'pdf' ? 'bg-white text-blue-800 shadow-xs' : 'text-neutral-600'
-          }`}
-        >
-          PDF
-        </button>
-        <button
-          onClick={() => setActiveTab('audit')}
-          className={`px-2.5 py-1 text-xs font-medium rounded whitespace-nowrap ${
-            activeTab === 'audit' ? 'bg-white text-blue-800 shadow-xs font-bold' : 'text-neutral-600'
-          }`}
-        >
-          🛡️ Auditoría
-        </button>
+      {/* Mobile subnav & date bar */}
+      <div className="md:hidden border-t border-neutral-200 bg-neutral-50">
+        {/* Mobile Date Row */}
+        <div className="px-3 py-1.5 border-b border-neutral-150 flex items-center justify-between text-xs bg-white/70">
+          <div className="flex items-center gap-1.5 text-neutral-600 font-medium">
+            <Calendar className="w-3.5 h-3.5 text-blue-900" />
+            <span>{currentDayConfig?.labelEs}:</span>
+          </div>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            className="bg-neutral-100 border border-neutral-300 rounded px-2 py-0.5 text-neutral-800 font-mono text-xs focus:outline-none"
+          />
+        </div>
+
+        {/* Mobile Tabs Scrollable Row */}
+        <div className="flex overflow-x-auto px-2 py-1.5 gap-1 scrollbar-none items-center">
+          <button
+            onClick={() => setActiveTab('hub')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
+              activeTab === 'hub' ? 'bg-blue-900 text-white shadow-xs font-semibold' : 'text-neutral-600 hover:bg-neutral-100'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Asignación</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('board')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
+              activeTab === 'board' ? 'bg-blue-900 text-white shadow-xs font-semibold' : 'text-neutral-600 hover:bg-neutral-100'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Tablero ({activeReplacementsCount})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
+              activeTab === 'schedule' ? 'bg-blue-900 text-white shadow-xs font-semibold' : 'text-neutral-600 hover:bg-neutral-100'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Horarios</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
+              activeTab === 'analytics' ? 'bg-blue-900 text-white shadow-xs font-semibold' : 'text-neutral-600 hover:bg-neutral-100'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Equidad</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('pdf')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
+              activeTab === 'pdf' ? 'bg-blue-900 text-white shadow-xs font-semibold' : 'text-neutral-600 hover:bg-neutral-100'
+            }`}
+          >
+            <FileUp className="w-3.5 h-3.5" />
+            <span>PDF</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('audit')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
+              activeTab === 'audit' ? 'bg-blue-900 text-white shadow-xs font-semibold' : 'text-neutral-600 hover:bg-neutral-100'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Auditoría</span>
+          </button>
+        </div>
       </div>
     </header>
   );

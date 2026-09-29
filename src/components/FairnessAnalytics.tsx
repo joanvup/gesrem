@@ -80,7 +80,7 @@ export const FairnessAnalytics: React.FC<FairnessAnalyticsProps> = ({
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs">
           <div className="flex items-center gap-2 text-neutral-500 text-xs">
             <Scale className="w-4 h-4 text-blue-600" />
