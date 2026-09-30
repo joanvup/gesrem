@@ -49,9 +49,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               <School className="w-40 h-40" />
             </div>
 
-            <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 text-white flex items-center justify-center font-bold text-2xl mx-auto shadow-inner mb-3">
-              R
-            </div>
+            <img
+              src="/fcbv-logo.jpg"
+              alt="Logo FCBV"
+              className="w-16 h-16 rounded-full bg-white border-2 border-amber-400 object-contain mx-auto shadow-md mb-3"
+            />
 
             <h1 className="text-xl font-bold tracking-tight">ReemplazaDocente</h1>
             <p className="text-xs text-blue-200 mt-1 font-medium">

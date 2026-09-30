@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, Printer, Share2, School, Calendar, CheckCircle, Users, BookOpen, GraduationCap } from 'lucide-react';
+import { X, Printer, Share2, School, Calendar, CheckCircle, Users, BookOpen, GraduationCap, Download, Loader2 } from 'lucide-react';
+import { generateSummaryPdf } from '../utils/pdfGenerator';
 import { ReplacementAssignment, Teacher, DAYS_CONFIG, DayOfWeek, getGradeSection, SchoolSection } from '../types';
 
 interface PrintSummaryModalProps {
@@ -22,6 +23,8 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
   onClose
 }) => {
   const [selectedSection, setSelectedSection] = useState<'all' | 'Primaria' | 'Bachillerato'>(initialSection);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   // Listen for Escape key to close
   useEffect(() => {
@@ -56,8 +59,40 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
   const uniqueAbsent = Array.from(new Set(displayedAssignments.map(a => a.absentTeacherName)));
   const uniqueSubstitutes = Array.from(new Set(displayedAssignments.map(a => a.substituteTeacherName)));
 
+  const handleDownloadPdf = () => {
+    setIsExportingPdf(true);
+    setNoticeMessage('Generando documento PDF oficial de alta resolución...');
+    try {
+      generateSummaryPdf({
+        date,
+        dayOfWeek,
+        assignments,
+        selectedSection
+      });
+      setNoticeMessage('✅ PDF oficial generado y descargado correctamente en formato vectorial nítido.');
+      setTimeout(() => setNoticeMessage(null), 7000);
+    } catch (err: any) {
+      console.error('Error al generar PDF:', err);
+      setNoticeMessage('No se pudo generar el archivo PDF: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   const handlePrint = () => {
-    window.print();
+    const inIframe = window.self !== window.top;
+    if (inIframe) {
+      // Browsers block window.print() inside sandboxed iframes.
+      // Automatically download high-res vector PDF and notify user!
+      handleDownloadPdf();
+      return;
+    }
+
+    try {
+      window.print();
+    } catch {
+      handleDownloadPdf();
+    }
   };
 
   const handleShareSummary = () => {
@@ -196,8 +231,22 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
                 <span className="hidden xs:inline">WhatsApp</span>
               </button>
               <button
+                onClick={handleDownloadPdf}
+                disabled={isExportingPdf}
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-neutral-800 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
+                title="Descargar archivo PDF oficial para imprimir o archivar"
+              >
+                {isExportingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-900" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-blue-900" />
+                )}
+                <span>{isExportingPdf ? 'Generando PDF...' : 'Descargar PDF'}</span>
+              </button>
+              <button
                 onClick={handlePrint}
-                className="px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+                disabled={isExportingPdf}
+                className="px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Imprimir Planilla</span>
@@ -211,6 +260,19 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Feedback Notice Banner */}
+          {noticeMessage && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-900 text-xs px-3 py-2 rounded-lg flex items-center justify-between gap-2 shadow-2xs animate-fade-in">
+              <span className="font-medium">{noticeMessage}</span>
+              <button
+                onClick={() => setNoticeMessage(null)}
+                className="text-blue-700 hover:text-blue-900 font-bold px-1.5 py-0.5 rounded cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {/* Section Filter Pills for Printing */}
           <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-neutral-200">
@@ -253,9 +315,11 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
           {/* Institution Header */}
           <div className="border-b-2 border-neutral-800 pb-4 mb-5 text-center">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full border-2 border-blue-900 bg-blue-50 flex items-center justify-center font-serif font-black text-blue-900 text-sm">
-                FCBV
-              </div>
+              <img
+                src="/fcbv-logo.jpg"
+                alt="Logo Fundación Colegio Bilingüe de Valledupar"
+                className="w-12 h-12 rounded-full object-contain border border-amber-600/50 bg-white shadow-2xs"
+              />
               <div>
                 <h1 className="text-lg font-bold tracking-tight uppercase text-neutral-900">
                   Fundación Colegio Bilingüe de Valledupar
@@ -282,21 +346,21 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
 
           {/* Metadata Cards */}
           <div className="grid grid-cols-3 gap-3 mb-5 text-xs">
-            <div className="border border-neutral-200 bg-neutral-50/60 rounded-lg p-2.5">
-              <span className="text-neutral-500 block text-[11px]">Total Clases Asignadas:</span>
-              <span className="font-bold text-base font-mono text-neutral-900">
+            <div className="border border-neutral-300 bg-white rounded-lg p-3 shadow-2xs">
+              <span className="text-neutral-600 block text-[11px] font-medium">Total Clases Asignadas:</span>
+              <span className="font-bold text-base font-mono text-neutral-900 block mt-0.5">
                 {displayedAssignments.length} horas lectivas
               </span>
             </div>
-            <div className="border border-neutral-200 bg-neutral-50/60 rounded-lg p-2.5">
-              <span className="text-neutral-500 block text-[11px]">Docentes Titulares Ausentes:</span>
-              <span className="font-bold text-neutral-900 block truncate" title={uniqueAbsent.join(', ')}>
-                {uniqueAbsent.length} ({uniqueAbsent.join(', ')})
+            <div className="border border-neutral-300 bg-white rounded-lg p-3 shadow-2xs">
+              <span className="text-neutral-600 block text-[11px] font-medium">Docentes Titulares Ausentes:</span>
+              <span className="font-bold text-sm text-red-700 block mt-0.5 truncate" title={uniqueAbsent.join(', ')}>
+                {uniqueAbsent.length} ({uniqueAbsent.join(', ') || 'Ninguno'})
               </span>
             </div>
-            <div className="border border-neutral-200 bg-neutral-50/60 rounded-lg p-2.5">
-              <span className="text-neutral-500 block text-[11px]">Docentes Suplentes Activados:</span>
-              <span className="font-bold text-emerald-800 block truncate" title={uniqueSubstitutes.join(', ')}>
+            <div className="border border-neutral-300 bg-white rounded-lg p-3 shadow-2xs">
+              <span className="text-neutral-600 block text-[11px] font-medium">Docentes Suplentes Activados:</span>
+              <span className="font-bold text-sm text-emerald-700 block mt-0.5 truncate" title={uniqueSubstitutes.join(', ')}>
                 {uniqueSubstitutes.length} {uniqueSubstitutes.length === 1 ? 'docente' : 'docentes'}
               </span>
             </div>
@@ -371,8 +435,21 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
           </span>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="px-3.5 py-2 text-xs font-semibold text-neutral-800 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+            >
+              {isExportingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin text-blue-900" />
+              ) : (
+                <Download className="w-4 h-4 text-blue-900" />
+              )}
+              <span>{isExportingPdf ? 'Generando PDF...' : 'Descargar PDF'}</span>
+            </button>
+            <button
               onClick={handlePrint}
-              className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+              disabled={isExportingPdf}
+              className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
             >
               <Printer className="w-4 h-4" />
               <span>Imprimir Planilla</span>

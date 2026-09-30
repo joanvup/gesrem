@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
-import { X, Printer, CheckCircle, Share2, School, Calendar, Clock, BookOpen, User } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Printer, CheckCircle, Share2, School, Calendar, Clock, BookOpen, User, Download, Loader2 } from 'lucide-react';
+import { generateSlipPdf } from '../utils/pdfGenerator';
 import { ReplacementAssignment, Teacher, DAYS_CONFIG } from '../types';
 
 interface PrintSlipModalProps {
@@ -15,6 +16,9 @@ export const PrintSlipModal: React.FC<PrintSlipModalProps> = ({
   substituteTeacher,
   onClose
 }) => {
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+
   // Listen for Escape key to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -30,8 +34,37 @@ export const PrintSlipModal: React.FC<PrintSlipModalProps> = ({
 
   const dayLabel = DAYS_CONFIG.find(d => d.id === assignment.dayOfWeek)?.labelEs || assignment.dayOfWeek;
 
+  const handleDownloadPdf = () => {
+    setIsExportingPdf(true);
+    setNoticeMessage('Generando volante oficial en PDF de alta resolución...');
+    try {
+      generateSlipPdf({
+        assignment,
+        absentTeacher,
+        substituteTeacher
+      });
+      setNoticeMessage('✅ Volante PDF oficial descargado correctamente.');
+      setTimeout(() => setNoticeMessage(null), 6000);
+    } catch (err: any) {
+      console.error('Error al generar PDF:', err);
+      setNoticeMessage('No se pudo generar el volante PDF: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   const handlePrint = () => {
-    window.print();
+    const inIframe = window.self !== window.top;
+    if (inIframe) {
+      handleDownloadPdf();
+      return;
+    }
+
+    try {
+      window.print();
+    } catch {
+      handleDownloadPdf();
+    }
   };
 
   const handleShareWhatsApp = () => {
@@ -80,8 +113,22 @@ Por favor presentarse puntualmente en el aula de clase.`;
               <span className="hidden xs:inline">WhatsApp</span>
             </button>
             <button
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-neutral-800 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
+              title="Descargar archivo PDF oficial del volante"
+            >
+              {isExportingPdf ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-900" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-blue-900" />
+              )}
+              <span>{isExportingPdf ? 'Generando...' : 'Descargar PDF'}</span>
+            </button>
+            <button
               onClick={handlePrint}
-              className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+              disabled={isExportingPdf}
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Imprimir</span>
@@ -96,14 +143,29 @@ Por favor presentarse puntualmente en el aula de clase.`;
           </div>
         </div>
 
+        {/* Notice Message */}
+        {noticeMessage && (
+          <div className="bg-blue-50 border-b border-blue-200 text-blue-900 text-xs px-4 py-2 flex items-center justify-between gap-2 shadow-2xs">
+            <span className="font-medium">{noticeMessage}</span>
+            <button
+              onClick={() => setNoticeMessage(null)}
+              className="text-blue-700 hover:text-blue-900 font-bold px-1.5 py-0.5 rounded cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Printable Voucher Section */}
         <div id="printable-slip" className="p-8 bg-white print:p-6 text-neutral-900 overflow-y-auto flex-1">
           {/* Header */}
           <div className="border-b-2 border-neutral-800 pb-5 mb-6 text-center">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full border-2 border-blue-900 bg-blue-50 flex items-center justify-center font-serif font-black text-blue-900 text-sm">
-                FCBV
-              </div>
+              <img
+                src="/fcbv-logo.jpg"
+                alt="Logo Fundación Colegio Bilingüe de Valledupar"
+                className="w-14 h-14 rounded-full object-contain border border-amber-600/50 bg-white shadow-2xs"
+              />
               <div>
                 <h1 className="text-xl font-bold tracking-tight uppercase text-neutral-900">
                   Fundación Colegio Bilingüe de Valledupar
@@ -225,8 +287,21 @@ Por favor presentarse puntualmente en el aula de clase.`;
           </span>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="px-3.5 py-2 text-xs font-semibold text-neutral-800 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+            >
+              {isExportingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin text-blue-900" />
+              ) : (
+                <Download className="w-4 h-4 text-blue-900" />
+              )}
+              <span>{isExportingPdf ? 'Generando PDF...' : 'Descargar PDF'}</span>
+            </button>
+            <button
               onClick={handlePrint}
-              className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+              disabled={isExportingPdf}
+              className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
             >
               <Printer className="w-4 h-4" />
               <span>Imprimir Volante</span>

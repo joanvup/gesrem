@@ -1,23 +1,75 @@
 @import "tailwindcss";
 
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
+  @page {
+    margin: 10mm 12mm;
+    size: letter portrait;
   }
 
-  header, footer, nav, button, .print\:hidden {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  header, footer, nav, button, .print\:hidden, [role="navigation"] {
     display: none !important;
   }
 
-  #printable-slip, #printable-summary {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 16px !important;
+  /* Reset modal containers so they don't clip, obscure or darken the printed page */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .max-w-4xl, .max-w-2xl, .bg-white.rounded-xl {
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
     border: none !important;
     box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  #printable-slip, #printable-summary {
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  table {
+    page-break-inside: auto !important;
+    width: 100% !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
   }
 }

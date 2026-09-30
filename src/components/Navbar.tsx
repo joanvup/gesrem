@@ -52,9 +52,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Zone 1: Single element brand wordmark */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-blue-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-              R
-            </div>
+            <img
+              src="/fcbv-logo.jpg"
+              alt="Fundación Colegio Bilingüe de Valledupar"
+              className="w-10 h-10 rounded-full object-contain border border-amber-600/40 shadow-xs bg-white"
+            />
             <div>
               <span className="text-base font-semibold tracking-tight text-neutral-900 block leading-tight">
                 ReemplazaDocente
