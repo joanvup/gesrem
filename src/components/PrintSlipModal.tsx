@@ -162,7 +162,7 @@ Por favor presentarse puntualmente en el aula de clase.`;
           <div className="border-b-2 border-neutral-800 pb-5 mb-6 text-center">
             <div className="flex items-center justify-center gap-3 mb-2">
               <img
-                src="/fcbv-logo.jpg"
+                src="/logo_320x320.png"
                 alt="Logo Fundación Colegio Bilingüe de Valledupar"
                 className="w-14 h-14 rounded-full object-contain border border-amber-600/50 bg-white shadow-2xs"
               />

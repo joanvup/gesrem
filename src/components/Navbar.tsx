@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Zone 1: Single element brand wordmark */}
           <div className="flex items-center gap-3 shrink-0">
             <img
-              src="/fcbv-logo.jpg"
+              src="/logo_320x320.png"
               alt="Fundación Colegio Bilingüe de Valledupar"
               className="w-10 h-10 rounded-full object-contain border border-amber-600/40 shadow-xs bg-white"
             />

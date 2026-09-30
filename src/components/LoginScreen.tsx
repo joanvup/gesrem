@@ -50,7 +50,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </div>
 
             <img
-              src="/fcbv-logo.jpg"
+              src="/logo_320x320.png"
               alt="Logo FCBV"
               className="w-16 h-16 rounded-full bg-white border-2 border-amber-400 object-contain mx-auto shadow-md mb-3"
             />

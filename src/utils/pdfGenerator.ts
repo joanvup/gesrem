@@ -53,7 +53,7 @@ export function generateSummaryPdf({
   // --- HEADER SECTION ---
   // Official FCBV Emblem Logo
   try {
-    doc.addImage(FCBV_LOGO_BASE64, 'JPEG', margin, margin, 15, 15);
+    doc.addImage(FCBV_LOGO_BASE64, 'PNG', margin, margin, 15, 15);
   } catch {
     doc.setFillColor(30, 58, 138); // blue-900 fallback
     doc.circle(margin + 7.5, margin + 7.5, 7.5, 'F');
@@ -317,7 +317,7 @@ export function generateSlipPdf({
 
   // Top Crest & Header
   try {
-    doc.addImage(FCBV_LOGO_BASE64, 'JPEG', margin, margin, 17, 17);
+    doc.addImage(FCBV_LOGO_BASE64, 'PNG', margin, margin, 17, 17);
   } catch {
     doc.setFillColor(30, 58, 138); // blue-900
     doc.circle(margin + 8.5, margin + 8.5, 8.5, 'F');
