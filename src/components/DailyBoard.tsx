@@ -12,7 +12,9 @@ import {
   UserCheck,
   Calendar,
   GraduationCap,
-  BookOpen
+  BookOpen,
+  Mail,
+  Send
 } from 'lucide-react';
 import { ReplacementAssignment, Teacher, DAYS_CONFIG, DayOfWeek, getGradeSection, SchoolSection } from '../types';
 
@@ -31,6 +33,8 @@ interface DailyBoardProps {
     assignments: ReplacementAssignment[];
     title?: string;
   }) => void;
+  onSendEmailNotification?: (assignment: ReplacementAssignment) => void;
+  onSendBatchEmails?: (assignments: ReplacementAssignment[]) => void;
 }
 
 export const DailyBoard: React.FC<DailyBoardProps> = ({
@@ -42,7 +46,9 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   onDeleteReplacement,
   onToggleStatus,
   onNavigateToHub,
-  onOpenSummaryModal
+  onOpenSummaryModal,
+  onSendEmailNotification,
+  onSendBatchEmails
 }) => {
   const [filterPeriod, setFilterPeriod] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -274,6 +280,16 @@ Agradecemos su puntual asistencia en el salón.`;
                               <Printer className="w-4 h-4" />
                             </button>
 
+                            {onSendEmailNotification && (
+                              <button
+                                onClick={() => onSendEmailNotification(rep)}
+                                title="Enviar o reenviar correo de notificación al docente suplente"
+                                className="p-1.5 text-neutral-600 dark:text-neutral-300 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded transition-colors cursor-pointer"
+                              >
+                                <Mail className="w-4 h-4" />
+                              </button>
+                            )}
+
                             <button
                               onClick={() => handleShareWhatsApp(rep)}
                               title="Enviar aviso por WhatsApp"
@@ -383,6 +399,16 @@ Agradecemos su puntual asistencia en el salón.`;
                           <Printer className="w-4 h-4 text-blue-900 dark:text-blue-400" />
                         </button>
 
+                        {onSendEmailNotification && (
+                          <button
+                            onClick={() => onSendEmailNotification(rep)}
+                            title="Enviar o reenviar correo de notificación al docente suplente"
+                            className="p-2 text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 border border-blue-300 dark:border-blue-800 rounded-lg transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+                          >
+                            <Mail className="w-4 h-4" />
+                          </button>
+                        )}
+
                         <button
                           onClick={() => handleShareWhatsApp(rep)}
                           title="WhatsApp"
@@ -464,6 +490,22 @@ Agradecemos su puntual asistencia en el salón.`;
               <Printer className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
               <span>Imprimir Todo</span>
             </button>
+
+            {onSendBatchEmails && (
+              <button
+                onClick={() => onSendBatchEmails(filteredReplacements)}
+                disabled={filteredReplacements.length === 0}
+                title="Enviar notificación por correo a todos los docentes suplentes"
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1.5 shadow-2xs ${
+                  filteredReplacements.length > 0
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border-blue-300 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer'
+                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 border-neutral-200 dark:border-neutral-800 cursor-not-allowed'
+                }`}
+              >
+                <Mail className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
+                <span>Notificar por Correo ({filteredReplacements.length})</span>
+              </button>
+            )}
           </div>
 
           <button

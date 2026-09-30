@@ -569,18 +569,42 @@ app.post('/api/teachers/bulk-update', async (req, res) => {
 // ----------------- SMTP Settings & Mail Notification Service -----------------
 
 function createMailTransporter(config: SmtpConfig) {
+  const isGmail = (config.host || '').toLowerCase().includes('gmail');
+  const portNum = Number(config.port) || (config.secure ? 465 : 587);
+  const isSecure = config.secure === true || portNum === 465;
+
   return nodemailer.createTransport({
-    host: config.host || 'smtp.gmail.com',
-    port: Number(config.port) || 587,
-    secure: config.secure === true || Number(config.port) === 465,
+    host: (config.host || 'smtp.gmail.com').trim(),
+    port: portNum,
+    secure: isSecure,
     auth: {
-      user: config.user,
-      pass: config.pass
+      user: (config.user || '').trim(),
+      pass: (config.pass || '').trim()
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    connectionTimeout: 12000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
   });
+}
+
+function formatSmtpErrorMessage(error: any): string {
+  const msg = error?.message || String(error);
+  if (msg.includes('EAUTH') || msg.includes('535') || msg.includes('BadCredentials') || msg.includes('Invalid login') || msg.includes('Username and Password not accepted')) {
+    return 'Error de autenticación SMTP (Gmail): Verifica tu correo y que la contraseña sea una "Contraseña de Aplicación" de 16 caracteres de Google (con 2FA activado), no tu contraseña normal.';
+  }
+  if (msg.includes('ETIMEDOUT') || msg.includes('timeout') || msg.includes('ESOCKETTIMEDOUT')) {
+    return 'Tiempo de espera agotado al conectar con el servidor SMTP. Verifica el puerto (587 o 465) o si tu red permite conexiones salientes.';
+  }
+  if (msg.includes('ECONNREFUSED')) {
+    return 'Conexión rechazada por el servidor de correo. Verifica la dirección del host y el puerto.';
+  }
+  if (msg.includes('ENOTFOUND')) {
+    return 'No se pudo resolver el host del servidor SMTP. Verifica la dirección del servidor.';
+  }
+  return msg;
 }
 
 function generateReplacementEmailHtml(params: {
@@ -805,12 +829,13 @@ app.post('/api/smtp/test', async (req, res) => {
 
     res.json({
       ok: true,
-      message: `Correo de prueba enviado con éxito a ${targetEmail.trim()}. Message ID: ${info.messageId}`
+      message: `Correo de prueba enviado con éxito a ${targetEmail.trim()}. (Message ID: ${info.messageId})`
     });
   } catch (error: any) {
     console.error('SMTP test error:', error);
+    const friendlyMsg = formatSmtpErrorMessage(error);
     res.status(500).json({
-      error: `Error al conectar o enviar con el servidor SMTP: ${error.message}`
+      error: friendlyMsg
     });
   }
 });
@@ -829,13 +854,28 @@ app.post('/api/notifications/send-replacements', async (req, res) => {
         ok: true,
         sentCount: 0,
         skippedCount: replacements.length,
-        reason: 'El servicio SMTP no está habilitado o configurado en el sistema.',
-        results: []
+        reason: 'El servicio SMTP (Gmail) no está habilitado o no tiene credenciales configuradas en el sistema (Administración > Servidor SMTP).',
+        results: replacements.map(r => ({
+          recipient: '(sin correo)',
+          teacherName: r.substituteTeacherName,
+          success: false,
+          error: 'Servidor SMTP no configurado o deshabilitado'
+        }))
       });
     }
 
     const allTeachers = await getAllTeachersFromDb();
-    const teachersMap = new Map(allTeachers.map(t => [t.id, t]));
+    const teachersById = new Map(allTeachers.map(t => [t.id, t]));
+    
+    // Helper to normalize teacher names for fuzzy matching
+    const normalizeStr = (str: string) =>
+      (str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+
+    const teachersByName = new Map(allTeachers.map(t => [normalizeStr(t.name), t]));
 
     const transporter = createMailTransporter(config);
     const sender = config.fromEmail || config.user;
@@ -846,7 +886,17 @@ app.post('/api/notifications/send-replacements', async (req, res) => {
     let skippedCount = 0;
 
     for (const r of replacements) {
-      const substitute = teachersMap.get(r.substituteTeacherId);
+      // Look up substitute teacher by ID first, then by normalized Name
+      let substitute = teachersById.get(r.substituteTeacherId);
+      if (!substitute && r.substituteTeacherName) {
+        substitute = teachersByName.get(normalizeStr(r.substituteTeacherName));
+      }
+      if (!substitute && r.substituteTeacherName) {
+        substitute = allTeachers.find(t => 
+          t.name.toLowerCase().trim() === r.substituteTeacherName.toLowerCase().trim()
+        );
+      }
+
       const targetEmail = substitute?.email?.trim();
 
       if (!targetEmail || !targetEmail.includes('@')) {
@@ -855,7 +905,7 @@ app.post('/api/notifications/send-replacements', async (req, res) => {
           recipient: targetEmail || '(sin correo)',
           teacherName: r.substituteTeacherName,
           success: false,
-          error: 'El docente suplente no tiene correo electrónico asignado en el sistema.'
+          error: `El docente suplente ${r.substituteTeacherName} no tiene correo electrónico asignado en el Directorio Docente.`
         });
         continue;
       }
@@ -903,11 +953,12 @@ app.post('/api/notifications/send-replacements', async (req, res) => {
         });
       } catch (mailErr: any) {
         console.error(`Failed to send email to ${targetEmail}:`, mailErr);
+        const friendlyError = formatSmtpErrorMessage(mailErr);
         results.push({
           recipient: targetEmail,
           teacherName: r.substituteTeacherName,
           success: false,
-          error: mailErr.message
+          error: friendlyError
         });
       }
     }
@@ -932,7 +983,8 @@ app.post('/api/notifications/send-replacements', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Error sending replacement notifications:', error);
-    res.status(500).json({ error: error.message });
+    const friendlyMsg = formatSmtpErrorMessage(error);
+    res.status(500).json({ error: friendlyMsg });
   }
 });
 

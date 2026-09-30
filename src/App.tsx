@@ -16,6 +16,7 @@ import { PrintSummaryModal } from './components/PrintSummaryModal';
 import { AuditAndBackup } from './components/AuditAndBackup';
 import { LoginScreen } from './components/LoginScreen';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { EmailNotificationModal, EmailModalData } from './components/EmailNotificationModal';
 import { Teacher, AbsenceRecord, ReplacementAssignment, DayOfWeek, AppUser, ScheduleVersionInfo } from './types';
 import {
   loadTeachers,
@@ -46,6 +47,7 @@ export default function App() {
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState<boolean>(false);
   const [emailToast, setEmailToast] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
+  const [emailModalData, setEmailModalData] = useState<EmailModalData | null>(null);
 
   const [teachers, setTeachers] = useState<Teacher[]>(loadTeachers);
   const [absences, setAbsences] = useState<AbsenceRecord[]>(loadAbsences);
@@ -147,6 +149,72 @@ export default function App() {
     saveScheduleVersion(scheduleVersion);
   }, [scheduleVersion]);
 
+  const handleDispatchEmails = async (assignments: ReplacementAssignment[]) => {
+    if (!assignments || assignments.length === 0) return;
+
+    setEmailModalData({
+      isOpen: true,
+      sentCount: 0,
+      skippedCount: 0,
+      results: [],
+      assignments,
+      isLoading: true
+    });
+
+    try {
+      const emailRes = await sendReplacementEmailsApi(assignments);
+      if (emailRes.ok) {
+        setEmailModalData({
+          isOpen: true,
+          sentCount: emailRes.sentCount || 0,
+          skippedCount: emailRes.skippedCount || 0,
+          reason: emailRes.reason,
+          results: emailRes.results || [],
+          assignments,
+          isLoading: false
+        });
+
+        if (emailRes.sentCount && emailRes.sentCount > 0) {
+          setEmailToast({
+            type: 'success',
+            message: `✉️ Se enviaron ${emailRes.sentCount} notificaciones por correo a los docentes suplentes.`
+          });
+          setTimeout(() => setEmailToast(null), 8000);
+        }
+      } else {
+        setEmailModalData({
+          isOpen: true,
+          sentCount: 0,
+          skippedCount: assignments.length,
+          reason: emailRes.error || 'Error al conectar con el servicio de correo.',
+          results: assignments.map(a => ({
+            recipient: '(error)',
+            teacherName: a.substituteTeacherName,
+            success: false,
+            error: emailRes.error
+          })),
+          assignments,
+          isLoading: false
+        });
+      }
+    } catch (err: any) {
+      setEmailModalData({
+        isOpen: true,
+        sentCount: 0,
+        skippedCount: assignments.length,
+        reason: `Error de conexión: ${err.message}`,
+        results: assignments.map(a => ({
+          recipient: '(error)',
+          teacherName: a.substituteTeacherName,
+          success: false,
+          error: err.message
+        })),
+        assignments,
+        isLoading: false
+      });
+    }
+  };
+
   const handleSaveAbsenceAndReplacements = async (
     newAbsence: AbsenceRecord,
     newAssignments: ReplacementAssignment[]
@@ -159,29 +227,8 @@ export default function App() {
     await syncAbsenceToApi(newAbsence);
     await syncReplacementsToApi(newAssignments);
 
-    // Trigger automatic SMTP email notification to substitute teachers
-    sendReplacementEmailsApi(newAssignments)
-      .then(emailRes => {
-        if (emailRes.ok && emailRes.sentCount && emailRes.sentCount > 0) {
-          setEmailToast({
-            type: 'success',
-            message: `✉️ Se enviaron ${emailRes.sentCount} notificaciones por correo a los docentes suplentes.`
-          });
-          setTimeout(() => setEmailToast(null), 8000);
-        } else if (emailRes.ok && emailRes.skippedCount && emailRes.skippedCount > 0 && emailRes.results) {
-          const noEmailDocentes = emailRes.results.filter(r => !r.success);
-          if (noEmailDocentes.length > 0 && !emailRes.reason) {
-            setEmailToast({
-              type: 'info',
-              message: `ℹ️ ${noEmailDocentes.length} docente(s) suplente(s) no tienen correo registrado en el Directorio.`
-            });
-            setTimeout(() => setEmailToast(null), 8000);
-          }
-        }
-      })
-      .catch(err => {
-        console.warn('Failed to dispatch notification emails:', err);
-      });
+    // Trigger automatic SMTP email notification with dedicated confirmation modal
+    handleDispatchEmails(newAssignments);
 
     // Switch to daily board to view the generated replacements
     setActiveTab('board');
@@ -273,6 +320,8 @@ export default function App() {
             onToggleStatus={handleToggleStatus}
             onNavigateToHub={() => setActiveTab('hub')}
             onOpenSummaryModal={data => setSummaryModalData(data)}
+            onSendEmailNotification={rep => handleDispatchEmails([rep])}
+            onSendBatchEmails={reps => handleDispatchEmails(reps)}
           />
         )}
 
@@ -370,6 +419,23 @@ export default function App() {
           teachers={teachers}
           title={summaryModalData.title}
           onClose={() => setSummaryModalData(null)}
+        />
+      )}
+
+      {/* Email Notification Status & Confirmation Modal */}
+      {emailModalData && (
+        <EmailNotificationModal
+          data={emailModalData}
+          onClose={() => setEmailModalData(null)}
+          onRetry={assignments => handleDispatchEmails(assignments)}
+          onNavigateToSmtp={() => {
+            setEmailModalData(null);
+            setActiveTab('audit');
+          }}
+          onNavigateToTeachers={() => {
+            setEmailModalData(null);
+            setActiveTab('audit');
+          }}
         />
       )}
 
