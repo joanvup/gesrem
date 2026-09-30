@@ -299,8 +299,51 @@ export async function restoreUploadBackupApi(file: File, userName = 'Coordinaci�
   }
 }
 
-export function downloadSqliteBackup(): void {
-  window.open('/api/backup/download', '_blank');
+export async function downloadSqliteBackup(specificFilename?: string): Promise<{ ok: boolean; error?: string }> {
+  const token = getStoredAuthToken();
+  try {
+    const params = new URLSearchParams();
+    if (token) params.set('token', token);
+    if (specificFilename) params.set('file', specificFilename);
+
+    const url = `/api/backup/download${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token || ''}`
+      }
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const errorMsg = errData.error || `Error ${res.status}: No tienes permisos suficientes o la sesión expiró.`;
+      return { ok: false, error: errorMsg };
+    }
+
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get('Content-Disposition');
+    let filename = specificFilename || `fcbv_database_${new Date().toISOString().slice(0, 10)}.sqlite`;
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match && match[1]) {
+        filename = match[1];
+      }
+    }
+
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    window.URL.revokeObjectURL(blobUrl);
+    document.body.removeChild(link);
+
+    return { ok: true };
+  } catch (err: any) {
+    console.error('Failed to download sqlite backup', err);
+    return { ok: false, error: err.message || 'Error al descargar la base de datos' };
+  }
 }
 
 // ----------------- Authentication Helpers -----------------

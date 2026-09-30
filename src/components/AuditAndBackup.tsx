@@ -138,24 +138,78 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
     setActionInProgress('Creando copia de seguridad...');
     setStatusMessage(null);
     try {
-      const filename = await createLocalBackupApi(userName);
-      if (filename) {
+      const res = await createLocalBackupApi(userName);
+      if (res.ok && res.filename) {
         setStatusMessage({
           type: 'success',
-          text: `Copia de seguridad creada con éxito: ${filename}`
+          text: `Copia de seguridad creada con éxito: ${res.filename}`
         });
         await loadBackups();
         await loadLogs();
       } else {
         setStatusMessage({
           type: 'error',
-          text: 'No se pudo generar la copia de seguridad.'
+          text: res.error || 'No se pudo generar la copia de seguridad.'
         });
       }
     } catch (err: any) {
       setStatusMessage({
         type: 'error',
         text: `Error al crear copia: ${err.message}`
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleDownloadCurrentDb = async () => {
+    setActionInProgress('Descargando base de datos SQLite...');
+    setStatusMessage(null);
+    try {
+      const res = await downloadSqliteBackup();
+      if (!res.ok) {
+        setStatusMessage({
+          type: 'error',
+          text: res.error || 'No se pudo descargar la base de datos.'
+        });
+      } else {
+        setStatusMessage({
+          type: 'success',
+          text: 'Base de datos descargada exitosamente en tu equipo.'
+        });
+        await loadLogs();
+      }
+    } catch (err: any) {
+      setStatusMessage({
+        type: 'error',
+        text: `Error al descargar: ${err.message}`
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleDownloadBackupFile = async (filename: string) => {
+    setActionInProgress(`Descargando ${filename}...`);
+    setStatusMessage(null);
+    try {
+      const res = await downloadSqliteBackup(filename);
+      if (!res.ok) {
+        setStatusMessage({
+          type: 'error',
+          text: res.error || 'No se pudo descargar el archivo de respaldo.'
+        });
+      } else {
+        setStatusMessage({
+          type: 'success',
+          text: `Archivo de respaldo ${filename} descargado exitosamente.`
+        });
+        await loadLogs();
+      }
+    } catch (err: any) {
+      setStatusMessage({
+        type: 'error',
+        text: `Error al descargar: ${err.message}`
       });
     } finally {
       setActionInProgress(null);
@@ -623,8 +677,9 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
               </div>
 
               <button
-                onClick={downloadSqliteBackup}
-                className="w-full py-2 px-3 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
+                onClick={handleDownloadCurrentDb}
+                disabled={actionInProgress !== null}
+                className="w-full py-2 px-3 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer disabled:opacity-50"
               >
                 <HardDriveDownload className="w-4 h-4" />
                 <span>Descargar Base de Datos</span>
@@ -727,6 +782,16 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleDownloadBackupFile(b.filename)}
+                        disabled={actionInProgress !== null}
+                        title="Descargar este archivo .sqlite a tu equipo"
+                        className="px-2.5 py-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                      >
+                        <Download className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300" />
+                        <span className="hidden sm:inline">Descargar</span>
+                      </button>
+
                       <button
                         onClick={() =>
                           setConfirmModal({

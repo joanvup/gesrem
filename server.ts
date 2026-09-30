@@ -45,9 +45,15 @@ interface SessionData {
 const activeSessions = new Map<string, SessionData>();
 
 function getRequestUser(req: express.Request): AppUser | null {
+  let token: string | null = null;
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
+    token = authHeader.substring(7);
+  } else if (req.query && typeof req.query.token === 'string') {
+    token = req.query.token;
+  }
+
+  if (token) {
     const session = activeSessions.get(token);
     if (session) {
       if (session.expiresAt > Date.now()) {
@@ -402,24 +408,45 @@ function requireAdmin(req: express.Request, res: express.Response): AppUser | nu
 
 // ----------------- Backup and Restore Endpoints (Admin Only) -----------------
 
-// 1. Download current raw SQLite database file
+// 1. Download SQLite database file (current live DB or a saved backup point)
 app.get('/api/backup/download', async (req, res) => {
   try {
     const admin = requireAdmin(req, res);
     if (!admin) return;
 
-    const dbPath = path.resolve(process.cwd(), 'data', 'school_database.sqlite');
-    if (!fs.existsSync(dbPath)) {
-      return res.status(404).json({ error: 'Database file not found' });
+    const requestedFilename = (req.query.file || req.query.filename) as string | undefined;
+    let targetPath: string;
+    let outputFilename: string;
+
+    if (requestedFilename) {
+      // Secure filename to prevent path traversal
+      const safeFilename = path.basename(requestedFilename);
+      targetPath = path.resolve(process.cwd(), 'data', 'backups', safeFilename);
+      outputFilename = safeFilename;
+    } else {
+      targetPath = path.resolve(process.cwd(), 'data', 'school_database.sqlite');
+      const now = new Date();
+      const dateStr = now.toISOString().replace(/[-:T]/g, '_').split('.')[0];
+      outputFilename = `fcbv_reemplazos_${dateStr}.sqlite`;
     }
 
-    const now = new Date();
-    const dateStr = now.toISOString().replace(/[-:T]/g, '_').split('.')[0];
-    const filename = `fcbv_reemplazos_${dateStr}.sqlite`;
+    if (!fs.existsSync(targetPath)) {
+      return res.status(404).json({ error: 'Archivo de base de datos no encontrado en el servidor' });
+    }
+
+    // Record audit log for security
+    const userName = `${admin.name} (${admin.username})`;
+    await addAuditLog({
+      action: 'UPDATE_STATUS',
+      entityType: 'DATABASE',
+      entityId: outputFilename,
+      userName,
+      details: `Descarga de base de datos SQLite (${outputFilename}) solicitada por el usuario.`
+    });
 
     res.setHeader('Content-Type', 'application/x-sqlite3');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.download(dbPath, filename);
+    res.setHeader('Content-Disposition', `attachment; filename="${outputFilename}"`);
+    res.download(targetPath, outputFilename);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
