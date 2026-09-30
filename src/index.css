@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Accessibility & high legibility dark mode styles */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0a0a0a;
+  color: #f5f5f5;
+}
+
+/* Ensure inputs, selects, textareas adapt with high contrast and crisp borders in dark mode */
+html.dark input[type="text"],
+html.dark input[type="search"],
+html.dark input[type="date"],
+html.dark input[type="password"],
+html.dark textarea,
+html.dark select {
+  background-color: #171717;
+  color: #f5f5f5;
+  border-color: #383838;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #737373;
+}
+
 @media print {
   @page {
     margin: 10mm 12mm;

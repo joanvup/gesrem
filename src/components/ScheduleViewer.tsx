@@ -113,13 +113,13 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
         </div>
 
         {/* Subtabs switcher */}
-        <div className="flex items-center gap-1 p-1 bg-neutral-100 rounded-lg">
+        <div className="flex items-center gap-1 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
           <button
             onClick={() => setActiveSubTab('matrix')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
               activeSubTab === 'matrix'
-                ? 'bg-white text-neutral-900 shadow-xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-xs'
+                : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
             Matriz de Disponibilidad
@@ -128,8 +128,8 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
             onClick={() => setActiveSubTab('individual')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
               activeSubTab === 'individual'
-                ? 'bg-white text-neutral-900 shadow-xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-xs'
+                : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
             Horario Individual (Docente)
@@ -140,20 +140,20 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
       {activeSubTab === 'matrix' ? (
         <div className="space-y-6">
           {/* Controls Bar */}
-          <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs space-y-4">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 shadow-xs space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
               {/* Day Selector */}
               <div className="flex items-center gap-1.5">
-                <span className="text-neutral-500 font-medium">Día:</span>
-                <div className="flex items-center gap-1 bg-neutral-100 p-0.5 rounded-lg">
+                <span className="text-neutral-500 dark:text-neutral-400 font-medium">Día:</span>
+                <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-0.5 rounded-lg">
                   {DAYS_CONFIG.map(d => (
                     <button
                       key={d.id}
                       onClick={() => setActiveDay(d.id)}
                       className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors cursor-pointer ${
                         activeDay === d.id
-                          ? 'bg-white text-neutral-900 shadow-xs font-bold'
-                          : 'text-neutral-600 hover:text-neutral-900'
+                          ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-xs font-bold'
+                          : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white'
                       }`}
                     >
                       {d.labelEs}
@@ -164,14 +164,14 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
 
               {/* Section Selector */}
               <div className="flex items-center gap-1.5">
-                <span className="text-neutral-500 font-medium">Sección:</span>
-                <div className="flex items-center gap-1 bg-neutral-100 p-0.5 rounded-lg">
+                <span className="text-neutral-500 dark:text-neutral-400 font-medium">Sección:</span>
+                <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-0.5 rounded-lg">
                   <button
                     onClick={() => setFilterSection('all')}
                     className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors cursor-pointer ${
                       filterSection === 'all'
-                        ? 'bg-white text-neutral-900 shadow-xs font-bold'
-                        : 'text-neutral-600 hover:text-neutral-900'
+                        ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-xs font-bold'
+                        : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white'
                     }`}
                   >
                     Todas
@@ -180,8 +180,8 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
                     onClick={() => setFilterSection('Primaria')}
                     className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors cursor-pointer ${
                       filterSection === 'Primaria'
-                        ? 'bg-white text-amber-950 shadow-xs font-bold'
-                        : 'text-neutral-600 hover:text-neutral-900'
+                        ? 'bg-white dark:bg-neutral-700 text-amber-950 dark:text-amber-300 shadow-xs font-bold'
+                        : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white'
                     }`}
                   >
                     Primaria (1°-5°)
@@ -190,8 +190,8 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
                     onClick={() => setFilterSection('Bachillerato')}
                     className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors cursor-pointer ${
                       filterSection === 'Bachillerato'
-                        ? 'bg-white text-indigo-950 shadow-xs font-bold'
-                        : 'text-neutral-600 hover:text-neutral-900'
+                        ? 'bg-white dark:bg-neutral-700 text-indigo-950 dark:text-indigo-300 shadow-xs font-bold'
+                        : 'text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white'
                     }`}
                   >
                     Bachillerato (6°-11°)
@@ -201,11 +201,11 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
 
               {/* Department Filter */}
               <div className="flex items-center gap-2">
-                <span className="text-neutral-500">Departamento:</span>
+                <span className="text-neutral-500 dark:text-neutral-400">Departamento:</span>
                 <select
                   value={filterDepartment}
                   onChange={e => setFilterDepartment(e.target.value)}
-                  className="border border-neutral-300 rounded px-2.5 py-1 text-xs bg-white text-neutral-800"
+                  className="border border-neutral-300 dark:border-neutral-700 rounded px-2.5 py-1 text-xs bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200"
                 >
                   <option value="all">Todos los departamentos</option>
                   {departments.map(d => (
@@ -215,21 +215,21 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
               </div>
 
               {/* Search */}
-              <div className="flex items-center gap-1.5 border border-neutral-300 rounded-lg px-2.5 py-1 text-xs bg-white">
-                <Search className="w-3.5 h-3.5 text-neutral-400" />
+              <div className="flex items-center gap-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1 text-xs bg-white dark:bg-neutral-800">
+                <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Filtrar por nombre..."
-                  className="bg-transparent border-none text-neutral-800 focus:outline-none"
+                  className="bg-transparent border-none text-neutral-800 dark:text-neutral-100 focus:outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
                 />
               </div>
             </div>
 
             {/* Periods selector pills */}
-            <div className="border-t border-neutral-100 pt-3">
-              <span className="text-[11px] text-neutral-500 block mb-1.5 font-medium">
+            <div className="border-t border-neutral-100 dark:border-neutral-800 pt-3">
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block mb-1.5 font-medium">
                 Selecciona el Periodo para calcular quién está libre:
               </span>
               <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-11 gap-1.5">
@@ -243,12 +243,12 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
                       onClick={() => setActivePeriod(p.number)}
                       className={`p-2 text-center rounded-lg border transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
-                          : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
+                          ? 'bg-blue-900 dark:bg-blue-600 text-white border-blue-900 dark:border-blue-600 shadow-xs'
+                          : 'bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-750'
                       }`}
                     >
                       <div className="text-xs font-bold font-mono">P{p.number}</div>
-                      <div className={`text-[10px] font-mono leading-tight mt-0.5 ${isSelected ? 'text-blue-200' : 'text-neutral-400'}`}>
+                      <div className={`text-[10px] font-mono leading-tight mt-0.5 ${isSelected ? 'text-blue-200 dark:text-blue-100' : 'text-neutral-400 dark:text-neutral-500'}`}>
                         {time}
                       </div>
                     </button>
@@ -259,9 +259,9 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
           </div>
 
           {/* Current Period Banner */}
-          <div className="flex items-center justify-between bg-neutral-900 text-white rounded-xl p-4 shadow-sm text-xs">
+          <div className="flex items-center justify-between bg-neutral-900 dark:bg-neutral-850 text-white rounded-xl p-4 shadow-sm text-xs border border-neutral-800">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-mono font-bold text-sm">
+              <div className="w-9 h-9 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center font-mono font-bold text-sm">
                 P{activePeriod}
               </div>
               <div>
@@ -278,35 +278,35 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
           {/* Dual Columns: Free Teachers vs Busy Teachers */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Free Teachers */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  <h3 className="text-sm font-bold text-neutral-900">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
                     Docentes Disponibles ({freeTeachers.length})
                   </h3>
                 </div>
-                <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                   Libres en este periodo
                 </span>
               </div>
 
               {freeTeachers.length === 0 ? (
-                <div className="py-8 text-center text-neutral-400 text-xs">
+                <div className="py-8 text-center text-neutral-400 dark:text-neutral-500 text-xs">
                   No hay docentes disponibles con los filtros actuales.
                 </div>
               ) : (
-                <div className="divide-y divide-neutral-100 max-h-[500px] overflow-y-auto">
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-800 max-h-[500px] overflow-y-auto">
                   {freeTeachers.map(({ teacher }) => (
                     <div
                       key={teacher.id}
-                      className="py-2.5 flex items-center justify-between gap-3 text-xs hover:bg-neutral-50 px-2 rounded-md transition-colors"
+                      className="py-2.5 flex items-center justify-between gap-3 text-xs hover:bg-neutral-50 dark:hover:bg-neutral-800/50 px-2 rounded-md transition-colors"
                     >
                       <div>
-                        <span className="font-bold text-neutral-900 block">
+                        <span className="font-bold text-neutral-900 dark:text-neutral-100 block">
                           {teacher.name}
                         </span>
-                        <span className="text-[11px] text-neutral-500">
+                        <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
                           {teacher.department} · {teacher.section}
                         </span>
                       </div>
@@ -315,7 +315,7 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
                           setSelectedIndividualTeacherId(teacher.id);
                           setActiveSubTab('individual');
                         }}
-                        className="text-[11px] text-blue-700 hover:underline cursor-pointer"
+                        className="text-[11px] text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
                       >
                         Ver Horario
                       </button>
@@ -326,35 +326,35 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
             </div>
 
             {/* Busy Teachers */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
                 <div className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-neutral-400" />
-                  <h3 className="text-sm font-bold text-neutral-900">
+                  <XCircle className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                  <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
                     Docentes en Clase / Reunión ({busyTeachers.length})
                   </h3>
                 </div>
-                <span className="text-[11px] text-neutral-500 font-mono">
+                <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">
                   Ocupados
                 </span>
               </div>
 
               {busyTeachers.length === 0 ? (
-                <div className="py-8 text-center text-neutral-400 text-xs">
+                <div className="py-8 text-center text-neutral-400 dark:text-neutral-500 text-xs">
                   Ningún docente tiene clase asignada en este periodo.
                 </div>
               ) : (
-                <div className="divide-y divide-neutral-100 max-h-[500px] overflow-y-auto">
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-800 max-h-[500px] overflow-y-auto">
                   {busyTeachers.map(({ teacher, slot }) => (
                     <div
                       key={teacher.id}
-                      className="py-2.5 flex items-center justify-between gap-3 text-xs hover:bg-neutral-50 px-2 rounded-md transition-colors"
+                      className="py-2.5 flex items-center justify-between gap-3 text-xs hover:bg-neutral-50 dark:hover:bg-neutral-800/50 px-2 rounded-md transition-colors"
                     >
                       <div>
-                        <span className="font-bold text-neutral-800 block">
+                        <span className="font-bold text-neutral-800 dark:text-neutral-200 block">
                           {teacher.name}
                         </span>
-                        <span className="text-[11px] text-neutral-500">
+                        <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
                           {teacher.department}
                         </span>
                       </div>
@@ -375,20 +375,20 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
         /* Individual Teacher Weekly Timetable View (resembling aSc Timetables) */
         <div className="space-y-6">
           {/* Teacher Selector Card */}
-          <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <School className="w-5 h-5 text-blue-900" />
+              <School className="w-5 h-5 text-blue-900 dark:text-blue-400" />
               <div>
-                <label className="text-xs text-neutral-500 block">
+                <label className="text-xs text-neutral-500 dark:text-neutral-400 block">
                   Seleccionar Docente a consultar:
                 </label>
                 <select
                   value={selectedIndividualTeacherId}
                   onChange={e => setSelectedIndividualTeacherId(e.target.value)}
-                  className="font-bold text-neutral-900 text-sm border-none bg-transparent focus:outline-none cursor-pointer"
+                  className="font-bold text-neutral-900 dark:text-neutral-100 text-sm border-none bg-transparent focus:outline-none cursor-pointer"
                 >
                   {teachers.map(t => (
-                    <option key={t.id} value={t.id}>
+                    <option key={t.id} value={t.id} className="bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
                       {t.name} — {t.department} ({t.section})
                     </option>
                   ))}
@@ -398,17 +398,17 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
 
             <button
               onClick={() => onSelectTeacherForAbsence(selectedIndividualTeacher.id)}
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg shadow-xs cursor-pointer transition-colors"
+              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg shadow-xs cursor-pointer transition-colors"
             >
               Reportar Ausencia de {selectedIndividualTeacher.name.split(' ')[0]}
             </button>
           </div>
 
           {/* Schedule Sheet Header */}
-          <div className="border border-neutral-300 rounded-xl bg-white shadow-sm overflow-hidden">
-            <div className="bg-neutral-900 text-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-800">
+          <div className="border border-neutral-300 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
+            <div className="bg-neutral-900 dark:bg-neutral-850 text-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-800">
               <div>
-                <span className="text-[11px] uppercase tracking-wider text-blue-300 block font-semibold">
+                <span className="text-[11px] uppercase tracking-wider text-blue-300 dark:text-blue-400 block font-semibold">
                   Fundación Colegio Bilingüe de Valledupar · 2026/2027
                 </span>
                 <h2 className="text-lg font-bold">
@@ -425,29 +425,29 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="bg-neutral-100 border-b border-neutral-300 text-neutral-700">
-                    <th className="py-2.5 px-3 w-28 text-left border-r border-neutral-300">
+                  <tr className="bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200">
+                    <th className="py-2.5 px-3 w-28 text-left border-r border-neutral-300 dark:border-neutral-700">
                       Periodo / Hora
                     </th>
                     {DAYS_CONFIG.map(d => (
                       <th
                         key={d.id}
-                        className="py-2.5 px-3 text-center border-r border-neutral-300 font-bold"
+                        className="py-2.5 px-3 text-center border-r border-neutral-300 dark:border-neutral-700 font-bold"
                       >
                         {d.labelEs}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-200">
+                <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                   {PERIODS_CONFIG.map(p => (
-                    <tr key={p.number} className="hover:bg-neutral-50/50">
+                    <tr key={p.number} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-800/40">
                       {/* Period Label */}
-                      <td className="p-2 border-r border-neutral-300 bg-neutral-50/70">
-                        <div className="font-mono font-bold text-neutral-900">
+                      <td className="p-2 border-r border-neutral-300 dark:border-neutral-700 bg-neutral-50/70 dark:bg-neutral-850">
+                        <div className="font-mono font-bold text-neutral-900 dark:text-neutral-100">
                           Periodo {p.number}
                         </div>
-                        <div className="font-mono text-[10px] text-neutral-500">
+                        <div className="font-mono text-[10px] text-neutral-500 dark:text-neutral-400">
                           {p.regularTime}
                         </div>
                       </td>
@@ -459,7 +459,7 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
                         return (
                           <td
                             key={d.id}
-                            className="p-1.5 border-r border-neutral-200 text-center align-middle h-14"
+                            className="p-1.5 border-r border-neutral-200 dark:border-neutral-800 text-center align-middle h-14"
                           >
                             {slot ? (
                               <div
@@ -476,7 +476,7 @@ export const ScheduleViewer: React.FC<ScheduleViewerProps> = ({
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-[10px] text-neutral-300 font-mono">
+                              <span className="text-[10px] text-neutral-300 dark:text-neutral-600 font-mono">
                                 —
                               </span>
                             )}

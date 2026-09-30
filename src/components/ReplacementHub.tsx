@@ -257,12 +257,12 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Banner / Heading */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-5">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
             Asignación Inteligente de Reemplazos
           </h1>
-          <p className="text-xs text-neutral-500 mt-1">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
             Detecta automáticamente las horas de clase del docente ausente y calcula en tiempo real qué profesores están libres y mejor calificados para cubrir la suplencia.
           </p>
         </div>
@@ -273,8 +273,8 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
             disabled={slotsToCover.length === 0}
             className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-xs ${
               slotsToCover.length > 0
-                ? 'bg-blue-700 text-white hover:bg-blue-800 cursor-pointer'
-                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                ? 'bg-blue-700 hover:bg-blue-800 text-white cursor-pointer'
+                : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed'
             }`}
           >
             <Zap className="w-4 h-4 fill-amber-300 text-amber-300" />
@@ -284,12 +284,12 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
       </div>
 
       {successBanner && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-900 text-xs animate-in fade-in duration-200 shadow-xs">
+        <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-900 dark:text-emerald-200 text-xs animate-in fade-in duration-200 shadow-xs">
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <div>
-              <span className="font-semibold block text-emerald-950">¡Reemplazos confirmados y guardados exitosamente!</span>
-              <span className="text-emerald-800">
+              <span className="font-semibold block text-emerald-950 dark:text-emerald-100">¡Reemplazos confirmados y guardados exitosamente!</span>
+              <span className="text-emerald-800 dark:text-emerald-300">
                 Se han generado las asignaciones para el cuerpo docente. Puedes imprimir el resumen general o consultarlo en el Tablero Diario.
               </span>
             </div>
@@ -305,9 +305,9 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                   title: `Resumen General de Reemplazos: Ausencia de ${selectedTeacher.name}`
                 });
               }}
-              className="px-3.5 py-1.5 text-xs font-bold text-emerald-900 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer self-start sm:self-center"
+              className="px-3.5 py-1.5 text-xs font-bold text-emerald-900 dark:text-emerald-200 bg-white dark:bg-neutral-850 hover:bg-emerald-100 dark:hover:bg-neutral-800 border border-emerald-300 dark:border-emerald-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer self-start sm:self-center"
             >
-              <Printer className="w-3.5 h-3.5 text-emerald-700" />
+              <Printer className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
               <span>Imprimir Resumen General</span>
             </button>
           )}
@@ -317,10 +317,10 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
       {/* Main Grid: Form Left, Schedule Coverage Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Form (5 cols) */}
-        <div className="lg:col-span-5 bg-white border border-neutral-200 rounded-xl p-5 space-y-5 shadow-xs">
-          <div className="flex items-center gap-2 pb-3 border-b border-neutral-100">
-            <UserX className="w-4 h-4 text-red-600" />
-            <h2 className="text-sm font-semibold text-neutral-900">
+        <div className="lg:col-span-5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 space-y-5 shadow-xs">
+          <div className="flex items-center gap-2 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+            <UserX className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
               1. Datos del Docente Ausente
             </h2>
           </div>
@@ -328,17 +328,17 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
           {/* Teacher Selector */}
           <div className="space-y-1.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-              <label className="text-xs font-medium text-neutral-700 block">
+              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300 block">
                 Docente que faltará:
               </label>
-              <div className="flex items-center gap-1 bg-neutral-100 p-0.5 rounded-md text-[11px] self-start sm:self-auto">
+              <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-0.5 rounded-md text-[11px] self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setTeacherSectionFilter('all')}
                   className={`px-2 py-0.5 rounded cursor-pointer transition-colors ${
                     teacherSectionFilter === 'all'
-                      ? 'bg-white font-bold text-neutral-900 shadow-2xs'
-                      : 'text-neutral-500 hover:text-neutral-900'
+                      ? 'bg-white dark:bg-neutral-700 font-bold text-neutral-900 dark:text-white shadow-2xs'
+                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 >
                   Todos
@@ -348,8 +348,8 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                   onClick={() => setTeacherSectionFilter('Primaria')}
                   className={`px-2 py-0.5 rounded cursor-pointer transition-colors ${
                     teacherSectionFilter === 'Primaria'
-                      ? 'bg-white font-bold text-amber-900 shadow-2xs'
-                      : 'text-neutral-500 hover:text-neutral-900'
+                      ? 'bg-white dark:bg-neutral-700 font-bold text-amber-900 dark:text-amber-300 shadow-2xs'
+                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 >
                   Primaria (1°-5°)
@@ -359,8 +359,8 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                   onClick={() => setTeacherSectionFilter('Bachillerato')}
                   className={`px-2 py-0.5 rounded cursor-pointer transition-colors ${
                     teacherSectionFilter === 'Bachillerato'
-                      ? 'bg-white font-bold text-indigo-900 shadow-2xs'
-                      : 'text-neutral-500 hover:text-neutral-900'
+                      ? 'bg-white dark:bg-neutral-700 font-bold text-indigo-900 dark:text-indigo-300 shadow-2xs'
+                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 >
                   Bachillerato (6°-11°)
@@ -374,17 +374,17 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                   setSelectedTeacherId(e.target.value);
                   setStagedAssignments({});
                 }}
-                className="w-full text-xs border border-neutral-300 rounded-lg px-3 py-2 bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                className="w-full text-xs border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
               >
                 {filteredTeachers.map(t => (
-                  <option key={t.id} value={t.id}>
+                  <option key={t.id} value={t.id} className="bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
                     {t.name} — {t.department} ({t.section})
                   </option>
                 ))}
               </select>
             </div>
             {selectedTeacher && (
-              <div className="text-[11px] text-neutral-500 flex items-center gap-2 pt-1">
+              <div className="text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center gap-2 pt-1">
                 <span>{selectedTeacher.department}</span>
                 <span>·</span>
                 <span>Sección {selectedTeacher.section}</span>
@@ -397,21 +397,21 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
           {/* Date & Day */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-neutral-700 block mb-1">
+              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300 block mb-1">
                 Fecha:
               </label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="w-full text-xs border border-neutral-300 rounded-lg px-2.5 py-1.5 font-mono text-neutral-800"
+                className="w-full text-xs border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 font-mono text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-800"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-neutral-700 block mb-1">
+              <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300 block mb-1">
                 Día de la Semana:
               </label>
-              <div className="text-xs font-semibold text-neutral-800 border border-neutral-200 bg-neutral-50 rounded-lg px-2.5 py-1.5">
+              <div className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 rounded-lg px-2.5 py-1.5">
                 {dayConfig?.labelEs}
               </div>
             </div>
@@ -419,7 +419,7 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
           {/* Duration: Full Day vs Specific Periods */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-neutral-700 block">
+            <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300 block">
               Duración de la ausencia:
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -431,8 +431,8 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                 }}
                 className={`px-3 py-2 text-xs font-medium rounded-lg border text-center transition-colors cursor-pointer ${
                   isFullDay
-                    ? 'border-blue-600 bg-blue-50/50 text-blue-900 font-semibold'
-                    : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 font-semibold'
+                    : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800'
                 }`}
               >
                 Día Completo ({teacherDaySlots.length} clases)
@@ -442,8 +442,8 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                 onClick={() => setIsFullDay(false)}
                 className={`px-3 py-2 text-xs font-medium rounded-lg border text-center transition-colors cursor-pointer ${
                   !isFullDay
-                    ? 'border-blue-600 bg-blue-50/50 text-blue-900 font-semibold'
-                    : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 font-semibold'
+                    : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800'
                 }`}
               >
                 Horas Específicas
@@ -452,8 +452,8 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
             {/* If specific periods selected, show pills to toggle */}
             {!isFullDay && (
-              <div className="pt-2 border-t border-neutral-100">
-                <span className="text-[11px] text-neutral-500 block mb-1.5">
+              <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block mb-1.5">
                   Selecciona los periodos en los que no estará presente:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -473,7 +473,7 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                         className={`px-2.5 py-1 text-xs rounded-md border font-mono transition-colors cursor-pointer ${
                           isChecked
                             ? 'bg-blue-700 text-white border-blue-700 font-bold'
-                            : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50'
+                            : 'bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-750'
                         }`}
                       >
                         P{s.period} ({s.grade})
@@ -487,7 +487,7 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
           {/* Reason */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-700 block">
+            <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300 block">
               Motivo de la falta:
             </label>
             <div className="flex flex-wrap gap-1 mb-2">
@@ -498,8 +498,8 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                   onClick={() => setReason(p)}
                   className={`text-[11px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
                     reason === p
-                      ? 'bg-neutral-900 text-white border-neutral-900 font-medium'
-                      : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
+                      ? 'bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-100 font-medium'
+                      : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
                   }`}
                 >
                   {p}
@@ -511,13 +511,13 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="Otro motivo..."
-              className="w-full text-xs border border-neutral-300 rounded-lg px-2.5 py-1.5 text-neutral-900"
+              className="w-full text-xs border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800"
             />
           </div>
 
           {/* Class Instructions */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-700 block">
+            <label className="text-xs font-medium text-neutral-700 dark:text-neutral-300 block">
               Instrucciones o plan para los suplentes (opcional):
             </label>
             <textarea
@@ -525,39 +525,39 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
               value={customInstructions}
               onChange={e => setCustomInstructions(e.target.value)}
               placeholder="Ej: Continuar con el ejercicio de la página 42 del libro guía, entregar al final de clase."
-              className="w-full text-xs border border-neutral-300 rounded-lg p-2 text-neutral-900 placeholder:text-neutral-400"
+              className="w-full text-xs border border-neutral-300 dark:border-neutral-700 rounded-lg p-2 text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
             />
           </div>
         </div>
 
         {/* Right Column: Detected Classes & Replacements Assignment (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
               <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-blue-700" />
-                <h2 className="text-sm font-semibold text-neutral-900">
+                <BookOpen className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+                <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
                   2. Horario del Día ({dayConfig?.labelEs}) a Cubrir
                 </h2>
               </div>
-              <span className="text-xs font-mono text-neutral-500">
+              <span className="text-xs font-mono text-neutral-500 dark:text-neutral-400">
                 {slotsToCover.length} de {teacherDaySlots.length} clases seleccionadas
               </span>
             </div>
 
             {/* Empty state: No classes scheduled on that day */}
             {teacherDaySlots.length === 0 ? (
-              <div className="py-8 text-center text-neutral-500 space-y-2">
-                <AlertCircle className="w-8 h-8 text-neutral-300 mx-auto" />
+              <div className="py-8 text-center text-neutral-500 dark:text-neutral-400 space-y-2">
+                <AlertCircle className="w-8 h-8 text-neutral-300 dark:text-neutral-600 mx-auto" />
                 <p className="text-xs font-medium">
                   {selectedTeacher.name} no tiene clases lectivas registradas los {dayConfig?.labelEs}.
                 </p>
-                <p className="text-[11px] text-neutral-400">
+                <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
                   Puedes seleccionar otro día en la barra superior o elegir otro docente.
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-neutral-100 mt-2">
+              <div className="divide-y divide-neutral-100 dark:divide-neutral-800 mt-2">
                 {slotsToCover.map(slot => {
                   const staged = stagedAssignments[slot.period];
                   const time = slot.timeRange || getSlotTime(slot.period, selectedDay);
@@ -566,32 +566,32 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                     <div key={slot.period} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       {/* Left: Class info */}
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-neutral-100 border border-neutral-200 flex flex-col items-center justify-center shrink-0">
-                          <span className="text-[10px] uppercase font-bold text-neutral-500 leading-none">
+                        <div className="w-12 h-12 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex flex-col items-center justify-center shrink-0">
+                          <span className="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 leading-none">
                             Per
                           </span>
-                          <span className="text-base font-bold font-mono text-neutral-900 leading-none mt-0.5">
+                          <span className="text-base font-bold font-mono text-neutral-900 dark:text-neutral-100 leading-none mt-0.5">
                             {slot.period}
                           </span>
                         </div>
 
                         <div>
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-xs font-bold text-neutral-900">
+                            <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
                               {slot.subject}
                             </span>
-                            <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                            <span className="text-xs font-bold text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
                               Grado {slot.grade}
                             </span>
                             <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
                               getGradeSection(slot.grade) === 'Primaria'
-                                ? 'bg-amber-50 text-amber-900 border-amber-200'
-                                : 'bg-indigo-50 text-indigo-900 border-indigo-200'
+                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
                             }`}>
                               {getGradeSection(slot.grade) === 'Primaria' ? 'Primaria (1°-5°)' : 'Bachillerato (6°-11°)'}
                             </span>
                           </div>
-                          <div className="text-[11px] text-neutral-500 font-mono mt-0.5">
+                          <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">
                             ⏰ {time}
                           </div>
                         </div>
@@ -600,19 +600,19 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                       {/* Right: Assigned Substitute or Assign Button */}
                       <div className="flex items-center gap-2 self-end sm:self-center">
                         {staged ? (
-                          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
-                            <UserCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                          <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 rounded-lg px-3 py-1.5">
+                            <UserCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                             <div className="text-left">
-                              <span className="text-xs font-bold text-emerald-950 block leading-tight">
+                              <span className="text-xs font-bold text-emerald-950 dark:text-emerald-200 block leading-tight">
                                 {staged.substituteTeacherName}
                               </span>
-                              <span className="text-[10px] text-emerald-700 block">
+                              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 block">
                                 {staged.substituteDepartment} · Score: {staged.score}%
                               </span>
                             </div>
                             <button
                               onClick={() => setActiveSlotModal(slot)}
-                              className="text-[11px] text-blue-700 hover:underline ml-2 cursor-pointer font-medium"
+                              className="text-[11px] text-blue-700 dark:text-blue-400 hover:underline ml-2 cursor-pointer font-medium"
                             >
                               Cambiar
                             </button>
@@ -620,9 +620,9 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                         ) : (
                           <button
                             onClick={() => setActiveSlotModal(slot)}
-                            className="px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900 bg-neutral-50 hover:bg-neutral-100 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                            className="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-700 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                           >
-                            <Users className="w-3.5 h-3.5 text-neutral-500" />
+                            <Users className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
                             <span>Ver Disponibles</span>
                             <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />
                           </button>
@@ -636,8 +636,8 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
             {/* Notice about teacher meetings (PLC / Reunion de Seccion) */}
             {teacherDayMeetings.length > 0 && (
-              <div className="mt-4 p-3 bg-amber-50/70 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div className="mt-4 p-3 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold block">Nota sobre reuniones institucionales:</span>
                   <span>
@@ -650,7 +650,7 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
           {/* Bottom Confirmation Bar */}
           {slotsToCover.length > 0 && (
-            <div className="bg-neutral-900 text-white rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div className="bg-neutral-900 dark:bg-neutral-850 text-white rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-neutral-800">
               <div className="text-xs space-y-0.5">
                 <span className="font-bold block text-sm">
                   {Object.keys(stagedAssignments).length} de {slotsToCover.length} reemplazos asignados
@@ -688,21 +688,21 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
       {/* MODAL: Candidate Selection Drawer for an Individual Slot */}
       {activeSlotModal && modalCandidates && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-neutral-200 overflow-hidden my-6">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl max-w-2xl w-full border border-neutral-200 dark:border-neutral-800 overflow-hidden my-6">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-neutral-900">
+                <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
                   Disponibilidad Docente · Periodo {activeSlotModal.period} ({getSlotTime(activeSlotModal.period, selectedDay)})
                 </h3>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  Cubriendo: <span className="font-semibold text-neutral-800">{activeSlotModal.subject}</span> en grado <span className="font-semibold text-neutral-800">{activeSlotModal.grade}</span> ({selectedTeacher.name})
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                  Cubriendo: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{activeSlotModal.subject}</span> en grado <span className="font-semibold text-neutral-800 dark:text-neutral-200">{activeSlotModal.grade}</span> ({selectedTeacher.name})
                 </p>
               </div>
               <button
                 onClick={() => setActiveSlotModal(null)}
-                className="text-neutral-400 hover:text-neutral-700 text-sm font-semibold p-1"
+                className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 text-sm font-semibold p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -713,46 +713,46 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
               {/* Available candidates */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-neutral-900 flex items-center gap-1.5">
+                  <span className="font-bold text-neutral-900 dark:text-white flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                     Docentes Disponibles ({modalCandidates.freeCandidates.length})
                   </span>
-                  <span className="text-[11px] text-neutral-500">
+                  <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
                     Ordenados por afinidad pedagógica y equidad
                   </span>
                 </div>
 
                 {modalCandidates.freeCandidates.length === 0 ? (
-                  <div className="p-4 border border-dashed border-red-200 bg-red-50 text-red-800 rounded-lg text-center">
+                  <div className="p-4 border border-dashed border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 rounded-lg text-center">
                     No se encontraron docentes libres en este periodo.
                   </div>
                 ) : (
-                  <div className="divide-y divide-neutral-100 border border-neutral-200 rounded-lg overflow-hidden">
+                  <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
                     {modalCandidates.freeCandidates.map(cand => (
                       <div
                         key={cand.teacher.id}
-                        className="p-3.5 hover:bg-neutral-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                        className="p-3.5 hover:bg-neutral-50 dark:hover:bg-neutral-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
                       >
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-bold text-neutral-900 text-xs">
+                            <span className="font-bold text-neutral-900 dark:text-white text-xs">
                               {cand.teacher.name}
                             </span>
-                            <span className="text-[11px] text-neutral-500">
+                            <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
                               {cand.teacher.department}
                             </span>
-                            <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
+                            <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded">
                               {cand.score}% compatibilidad
                             </span>
                           </div>
 
-                          <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-neutral-500">
+                          <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-neutral-500 dark:text-neutral-400">
                             {cand.reasons.map((r, i) => (
-                              <span key={i} className="inline-flex items-center gap-0.5 text-neutral-600">
+                              <span key={i} className="inline-flex items-center gap-0.5 text-neutral-600 dark:text-neutral-300">
                                 · {r}
                               </span>
                             ))}
-                            <span className="text-neutral-400">
+                            <span className="text-neutral-400 dark:text-neutral-500">
                               ({cand.pastReplacementsCount} reemplazos previos)
                             </span>
                           </div>
@@ -760,7 +760,7 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
                         <button
                           onClick={() => handleSelectCandidateForSlot(activeSlotModal, cand)}
-                          className="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors cursor-pointer shrink-0 shadow-xs min-h-[38px] text-center"
+                          className="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors cursor-pointer shrink-0 shadow-xs min-h-[38px] text-center"
                         >
                           Asignar Suplente
                         </button>
@@ -772,16 +772,16 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
 
               {/* Busy teachers list (collapsible / informative) */}
               <div>
-                <span className="font-bold text-neutral-700 block mb-2 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-neutral-400"></span>
+                <span className="font-bold text-neutral-700 dark:text-neutral-300 block mb-2 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-neutral-400 dark:text-neutral-500"></span>
                   Docentes Ocupados en este periodo ({modalCandidates.busyCandidates.length})
                 </span>
 
-                <div className="max-h-40 overflow-y-auto border border-neutral-200 rounded-lg divide-y divide-neutral-100 text-[11px] bg-neutral-50/50">
+                <div className="max-h-40 overflow-y-auto border border-neutral-200 dark:border-neutral-800 rounded-lg divide-y divide-neutral-100 dark:divide-neutral-800 text-[11px] bg-neutral-50/50 dark:bg-neutral-850">
                   {modalCandidates.busyCandidates.map(b => (
-                    <div key={b.teacher.id} className="p-2 flex items-center justify-between text-neutral-600">
+                    <div key={b.teacher.id} className="p-2 flex items-center justify-between text-neutral-600 dark:text-neutral-300">
                       <span>{b.teacher.name} ({b.teacher.department})</span>
-                      <span className="font-mono text-neutral-500 text-[10px]">{b.busyReason}</span>
+                      <span className="font-mono text-neutral-500 dark:text-neutral-400 text-[10px]">{b.busyReason}</span>
                     </div>
                   ))}
                 </div>
@@ -789,10 +789,10 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-neutral-200 bg-neutral-50 flex justify-end">
+            <div className="px-6 py-3 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 flex justify-end">
               <button
                 onClick={() => setActiveSlotModal(null)}
-                className="px-4 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-200 rounded-lg transition-colors"
+                className="px-4 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-lg transition-colors cursor-pointer"
               >
                 Cerrar
               </button>

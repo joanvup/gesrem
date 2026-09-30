@@ -607,7 +607,10 @@ export async function resetDatabaseToDefault(userName = 'Coordinación Académic
 
 // ----------------- Backup and Restore Operations -----------------
 
-export async function createLocalBackup(userName = 'Coordinación Académica'): Promise<string> {
+export async function createLocalBackup(
+  userName = 'Coordinación Académica',
+  description?: string
+): Promise<string> {
   if (!fs.existsSync(BACKUPS_DIR)) {
     fs.mkdirSync(BACKUPS_DIR, { recursive: true });
   }
@@ -625,7 +628,7 @@ export async function createLocalBackup(userName = 'Coordinación Académica'): 
     entityType: 'DATABASE',
     entityId: backupFileName,
     userName,
-    details: `Punto de restauración creado: ${backupFileName} (${(buffer.length / 1024).toFixed(1)} KB).`
+    details: description || `Punto de restauración creado: ${backupFileName} (${(buffer.length / 1024).toFixed(1)} KB).`
   });
 
   return backupFileName;

@@ -155,4 +155,14 @@ export interface AuthSession {
   user: AppUser;
 }
 
+export interface ScheduleVersionInfo {
+  versionName: string;
+  fileName?: string;
+  uploadedAt?: string;
+  source: 'official_default' | 'uploaded_pdf';
+  pagesProcessed?: number;
+  teachersCount?: number;
+  academicYear?: string;
+}
+
 

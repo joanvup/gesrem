@@ -304,43 +304,43 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
     switch (action) {
       case 'CREATE':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
             CREACIÓN
           </span>
         );
       case 'UPDATE_STATUS':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
             CAMBIO ESTADO
           </span>
         );
       case 'DELETE':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-red-50 text-red-800 border border-red-200">
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-red-50 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800">
             ELIMINADO
           </span>
         );
       case 'CREATE_BACKUP':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
             BACKUP CREADO
           </span>
         );
       case 'RESTORE_BACKUP':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
             BD RESTAURADA
           </span>
         );
       case 'RESET_DATABASE':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-neutral-100 text-neutral-800 border border-neutral-300">
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700">
             REINICIO BD
           </span>
         );
       default:
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-neutral-100 text-neutral-700 border border-neutral-200">
+          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
             {action}
           </span>
         );
@@ -367,15 +367,15 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Header and User Name */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-blue-900" />
-            <h1 className="text-xl font-bold tracking-tight text-neutral-900">
+            <ShieldCheck className="w-6 h-6 text-blue-900 dark:text-blue-400" />
+            <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
               {isAdmin ? 'Auditoría, Usuarios & Base de Datos' : 'Registro de Auditoría e Historial'}
             </h1>
           </div>
-          <p className="text-xs text-neutral-500 mt-1">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
             {isAdmin
               ? 'Registro cronológico inmutable de suplencias, control de accesos cifrados con PBKDF2/SHA-512 y copias de seguridad SQLite.'
               : 'Historial cronológico inmutable de asignaciones, cambios de estado y registros de reemplazos docentes.'}
@@ -383,11 +383,11 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
         </div>
 
         {/* Responsible user badge */}
-        <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-lg px-3 py-1.5 shadow-2xs self-start md:self-auto">
-          <User className="w-4 h-4 text-blue-900" />
+        <div className="flex items-center gap-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-3 py-1.5 shadow-2xs self-start md:self-auto">
+          <User className="w-4 h-4 text-blue-900 dark:text-blue-400" />
           <div className="text-xs">
-            <span className="text-neutral-400 text-[10px] block">Sesión Activa:</span>
-            <span className="font-semibold text-neutral-900 block truncate max-w-[200px]">
+            <span className="text-neutral-400 dark:text-neutral-500 text-[10px] block">Sesión Activa:</span>
+            <span className="font-semibold text-neutral-900 dark:text-neutral-100 block truncate max-w-[200px]">
               {userName}
             </span>
           </div>
@@ -399,15 +399,15 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
         <div
           className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs ${
             statusMessage.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-              : 'bg-red-50 border-red-200 text-red-900'
+              ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+              : 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200'
           }`}
         >
           <div className="flex items-center gap-2">
             {statusMessage.type === 'success' ? (
-              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+              <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             ) : (
-              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
             )}
             <span className="font-medium">{statusMessage.text}</span>
           </div>
@@ -421,13 +421,13 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-neutral-200 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-2 border-b border-neutral-200 dark:border-neutral-800 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveSubTab('audit')}
           className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
             activeSubTab === 'audit'
-              ? 'border-blue-900 text-blue-900'
-              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+              ? 'border-blue-900 dark:border-blue-400 text-blue-900 dark:text-blue-400'
+              : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
           }`}
         >
           <History className="w-4 h-4" />
@@ -440,8 +440,8 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
               onClick={() => setActiveSubTab('backup')}
               className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
                 activeSubTab === 'backup'
-                  ? 'border-blue-900 text-blue-900'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-800'
+                  ? 'border-blue-900 dark:border-blue-400 text-blue-900 dark:text-blue-400'
+                  : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
               }`}
             >
               <Database className="w-4 h-4" />
@@ -452,8 +452,8 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
               onClick={() => setActiveSubTab('users')}
               className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
                 activeSubTab === 'users'
-                  ? 'border-blue-900 text-blue-900'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-800'
+                  ? 'border-blue-900 dark:border-blue-400 text-blue-900 dark:text-blue-400'
+                  : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -467,23 +467,23 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       {activeSubTab === 'audit' && (
         <div className="space-y-4">
           {/* Controls Bar */}
-          <div className="bg-white border border-neutral-200 rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
             <div className="flex flex-wrap items-center gap-2 flex-1">
-              <div className="flex items-center gap-1.5 border border-neutral-300 rounded-lg px-2.5 py-1 text-xs bg-white w-full sm:w-72">
-                <Search className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+              <div className="flex items-center gap-1.5 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1 text-xs bg-white dark:bg-neutral-800 w-full sm:w-72">
+                <Search className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 shrink-0" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Buscar por profesor, periodo, detalle..."
-                  className="w-full bg-transparent border-none text-neutral-800 focus:outline-none placeholder:text-neutral-400"
+                  className="w-full bg-transparent border-none text-neutral-800 dark:text-neutral-100 focus:outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
                 />
               </div>
 
               <select
                 value={filterAction}
                 onChange={e => setFilterAction(e.target.value)}
-                className="border border-neutral-300 rounded-lg px-2.5 py-1 text-xs bg-white text-neutral-800 focus:outline-none"
+                className="border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1 text-xs bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 focus:outline-none"
               >
                 <option value="all">Todas las acciones</option>
                 <option value="CREATE">Creación de Reemplazo</option>
@@ -497,7 +497,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
             <button
               onClick={loadLogs}
               disabled={loadingLogs}
-              className="px-3 py-1.5 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg border border-neutral-300 transition-colors flex items-center gap-1.5 cursor-pointer self-start md:self-auto"
+              className="px-3 py-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg border border-neutral-300 dark:border-neutral-700 transition-colors flex items-center gap-1.5 cursor-pointer self-start md:self-auto"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingLogs ? 'animate-spin' : ''}`} />
               <span>Actualizar Log</span>
@@ -505,17 +505,17 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
           </div>
 
           {/* Table */}
-          <div className="bg-white border border-neutral-200 rounded-xl shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xs overflow-hidden">
             {filteredLogs.length === 0 ? (
-              <div className="py-12 text-center text-neutral-400 text-xs space-y-2">
-                <History className="w-8 h-8 text-neutral-300 mx-auto" />
+              <div className="py-12 text-center text-neutral-400 dark:text-neutral-500 text-xs space-y-2">
+                <History className="w-8 h-8 text-neutral-300 dark:text-neutral-700 mx-auto" />
                 <p>No se encontraron registros de auditoría para los filtros seleccionados.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-medium">
+                    <tr className="bg-neutral-50 dark:bg-neutral-850 border-b border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium">
                       <th className="py-2.5 px-4 w-44">Fecha y Hora</th>
                       <th className="py-2.5 px-4 w-32">Acción</th>
                       <th className="py-2.5 px-4 w-44">Usuario / Editor</th>
@@ -523,12 +523,12 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                       <th className="py-2.5 px-4 w-28 text-right">ID Entidad</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-100 font-sans">
+                  <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800 font-sans">
                     {filteredLogs.map(item => (
-                      <tr key={item.id} className="hover:bg-neutral-50/60 transition-colors">
-                        <td className="py-3 px-4 font-mono text-[11px] text-neutral-600 whitespace-nowrap">
-                          <div className="flex items-center gap-1 text-neutral-800 font-semibold">
-                            <Clock className="w-3 h-3 text-neutral-400" />
+                      <tr key={item.id} className="hover:bg-neutral-50/60 dark:hover:bg-neutral-800/40 transition-colors">
+                        <td className="py-3 px-4 font-mono text-[11px] text-neutral-600 dark:text-neutral-300 whitespace-nowrap">
+                          <div className="flex items-center gap-1 text-neutral-800 dark:text-neutral-200 font-semibold">
+                            <Clock className="w-3 h-3 text-neutral-400 dark:text-neutral-500" />
                             <span>{formatTimestamp(item.timestamp)}</span>
                           </div>
                         </td>
@@ -538,28 +538,28 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                         </td>
 
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-neutral-900 flex items-center gap-1.5">
-                            <User className="w-3.5 h-3.5 text-neutral-400" />
+                          <div className="font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500" />
                             <span>{item.userName}</span>
                           </div>
                         </td>
 
                         <td className="py-3 px-4">
-                          <div className="text-neutral-800 font-medium leading-relaxed">
+                          <div className="text-neutral-800 dark:text-neutral-200 font-medium leading-relaxed">
                             {item.details}
                           </div>
                           {(item.previousValue || item.newValue) && (
-                            <div className="flex items-center gap-2 mt-1 text-[11px] text-neutral-500 font-mono">
+                            <div className="flex items-center gap-2 mt-1 text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">
                               {item.previousValue && (
-                                <span className="bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
+                                <span className="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-700">
                                   Antes: {item.previousValue}
                                 </span>
                               )}
                               {item.previousValue && item.newValue && (
-                                <ArrowRight className="w-3 h-3 text-neutral-400" />
+                                <ArrowRight className="w-3 h-3 text-neutral-400 dark:text-neutral-500" />
                               )}
                               {item.newValue && (
-                                <span className="bg-blue-50 text-blue-900 px-1.5 py-0.5 rounded border border-blue-200 font-bold">
+                                <span className="bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800 font-bold">
                                   Ahora: {item.newValue}
                                 </span>
                               )}
@@ -567,7 +567,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                           )}
                         </td>
 
-                        <td className="py-3 px-4 text-right font-mono text-[10px] text-neutral-400 whitespace-nowrap truncate max-w-[120px]">
+                        <td className="py-3 px-4 text-right font-mono text-[10px] text-neutral-400 dark:text-neutral-500 whitespace-nowrap truncate max-w-[120px]">
                           {item.entityId}
                         </td>
                       </tr>
@@ -583,22 +583,22 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       {/* TAB 2: BACKUPS & RESTORE */}
       {activeSubTab === 'backup' && (
         !isAdmin ? (
-          <div className="bg-white border border-neutral-200 rounded-2xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4 my-6">
-            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center justify-center mx-auto shadow-2xs">
-              <Lock className="w-7 h-7 text-amber-800" />
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4 my-6">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300 flex items-center justify-center mx-auto shadow-2xs">
+              <Lock className="w-7 h-7 text-amber-800 dark:text-amber-400" />
             </div>
             <div className="space-y-1.5">
-              <h3 className="font-bold text-neutral-900 text-base">
+              <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-base">
                 Módulo Reservado para Administradores
               </h3>
-              <p className="text-xs text-neutral-600 leading-relaxed">
-                La descarga, creación de puntos de restauración y recuperación de la base de datos <code className="font-mono bg-neutral-100 px-1 py-0.5 rounded text-neutral-800">.sqlite</code> están reservadas exclusivamente para el perfil de <strong>Administrador</strong>.
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                La descarga, creación de puntos de restauración y recuperación de la base de datos <code className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded text-neutral-800 dark:text-neutral-200">.sqlite</code> están reservadas exclusivamente para el perfil de <strong>Administrador</strong>.
               </p>
             </div>
             <div className="pt-2">
               <button
                 onClick={() => setActiveSubTab('audit')}
-                className="px-4 py-2 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-blue-900 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors cursor-pointer"
               >
                 ← Volver al Log de Auditoría
               </button>
@@ -609,22 +609,22 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
           {/* Action Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Card 1: Download Current Database */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
               <div className="space-y-2">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-900 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 flex items-center justify-center">
                   <Download className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-neutral-900 text-sm">
+                <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
                   Descargar Copia (.sqlite)
                 </h3>
-                <p className="text-xs text-neutral-500 leading-relaxed">
-                  Descarga una copia completa e idéntica del archivo <code className="font-mono bg-neutral-100 px-1 rounded text-neutral-800">school_database.sqlite</code> a tu equipo con todos los datos y auditorías.
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                  Descarga una copia completa e idéntica del archivo <code className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 rounded text-neutral-800 dark:text-neutral-200">school_database.sqlite</code> a tu equipo con todos los datos y auditorías.
                 </p>
               </div>
 
               <button
                 onClick={downloadSqliteBackup}
-                className="w-full py-2 px-3 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
+                className="w-full py-2 px-3 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
               >
                 <HardDriveDownload className="w-4 h-4" />
                 <span>Descargar Base de Datos</span>
@@ -632,23 +632,23 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
             </div>
 
             {/* Card 2: Create Server Checkpoint */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
               <div className="space-y-2">
-                <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-900 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 flex items-center justify-center">
                   <Database className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-neutral-900 text-sm">
+                <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
                   Crear Punto de Restauración
                 </h3>
-                <p className="text-xs text-neutral-500 leading-relaxed">
-                  Genera una instantánea protegida en la carpeta <code className="font-mono bg-neutral-100 px-1 rounded text-neutral-800">data/backups/</code> del servidor para volver a ella en cualquier momento.
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                  Genera una instantánea protegida en la carpeta <code className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 rounded text-neutral-800 dark:text-neutral-200">data/backups/</code> del servidor para volver a ella en cualquier momento.
                 </p>
               </div>
 
               <button
                 onClick={handleCreateBackup}
                 disabled={actionInProgress !== null}
-                className="w-full py-2 px-3 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer disabled:opacity-50"
+                className="w-full py-2 px-3 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer disabled:opacity-50"
               >
                 <CheckCircle className="w-4 h-4" />
                 <span>Crear Instantánea Ahora</span>
@@ -656,21 +656,21 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
             </div>
 
             {/* Card 3: Upload and Restore */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
               <div className="space-y-2">
-                <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-900 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 flex items-center justify-center">
                   <Upload className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-neutral-900 text-sm">
+                <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
                   Subir y Restaurar Archivo
                 </h3>
-                <p className="text-xs text-neutral-500 leading-relaxed">
-                  Restaura el sistema seleccionando un archivo <code className="font-mono bg-neutral-100 px-1 rounded text-neutral-800">.sqlite</code> previamente descargado. Se creará una copia de seguridad preventiva automática.
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                  Restaura el sistema seleccionando un archivo <code className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 rounded text-neutral-800 dark:text-neutral-200">.sqlite</code> previamente descargado. Se creará una copia de seguridad preventiva automática.
                 </p>
               </div>
 
-              <label className="w-full py-2 px-3 text-xs font-semibold text-neutral-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer text-center">
-                <Upload className="w-4 h-4 text-amber-800" />
+              <label className="w-full py-2 px-3 text-xs font-semibold text-neutral-800 dark:text-neutral-200 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-300 dark:border-amber-800 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer text-center">
+                <Upload className="w-4 h-4 text-amber-800 dark:text-amber-400" />
                 <span>Seleccionar Archivo .sqlite</span>
                 <input
                   type="file"
@@ -683,13 +683,13 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
           </div>
 
           {/* Local Backups List */}
-          <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-neutral-200 pb-3">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-3">
               <div>
-                <h3 className="font-bold text-neutral-900 text-sm">
+                <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
                   Puntos de Restauración en el Servidor (data/backups/)
                 </h3>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
                   Instantáneas disponibles para restaurar con un solo clic.
                 </p>
               </div>
@@ -697,7 +697,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
               <button
                 onClick={loadBackups}
                 disabled={loadingBackups}
-                className="text-xs font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1 cursor-pointer"
+                className="text-xs font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 flex items-center gap-1 cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loadingBackups ? 'animate-spin' : ''}`} />
                 <span>Refrescar Lista</span>
@@ -705,20 +705,20 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
             </div>
 
             {backups.length === 0 ? (
-              <div className="py-8 text-center text-neutral-400 text-xs">
+              <div className="py-8 text-center text-neutral-400 dark:text-neutral-500 text-xs">
                 No hay puntos de restauración guardados aún en el servidor. Crea uno con el botón "Crear Instantánea Ahora".
               </div>
             ) : (
-              <div className="divide-y divide-neutral-100">
+              <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                 {backups.map(b => (
-                  <div key={b.filename} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-neutral-50/50 px-2 rounded-lg transition-colors">
+                  <div key={b.filename} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/40 px-2 rounded-lg transition-colors">
                     <div className="flex items-center gap-3">
-                      <FileCode className="w-5 h-5 text-blue-900 shrink-0" />
+                      <FileCode className="w-5 h-5 text-blue-900 dark:text-blue-400 shrink-0" />
                       <div>
-                        <span className="font-mono font-bold text-xs text-neutral-900 block">
+                        <span className="font-mono font-bold text-xs text-neutral-900 dark:text-neutral-100 block">
                           {b.filename}
                         </span>
-                        <span className="text-[11px] text-neutral-500 flex items-center gap-2 mt-0.5 font-mono">
+                        <span className="text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center gap-2 mt-0.5 font-mono">
                           <span>📅 {formatTimestamp(b.createdAt)}</span>
                           <span>·</span>
                           <span>💾 {(b.sizeBytes / 1024).toFixed(1)} KB</span>
@@ -735,9 +735,9 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                             targetName: b.filename
                           })
                         }
-                        className="px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        className="px-3 py-1.5 text-xs font-bold text-amber-900 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-300 dark:border-amber-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
                       >
-                        <RefreshCw className="w-3.5 h-3.5 text-amber-800" />
+                        <RefreshCw className="w-3.5 h-3.5 text-amber-800 dark:text-amber-400" />
                         <span>Restaurar este Punto</span>
                       </button>
                     </div>
@@ -753,22 +753,22 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       {/* TAB 3: USERS MANAGEMENT */}
       {activeSubTab === 'users' && (
         !isAdmin ? (
-          <div className="bg-white border border-neutral-200 rounded-2xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4 my-6">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 flex items-center justify-center mx-auto shadow-2xs">
-              <Lock className="w-7 h-7 text-blue-800" />
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4 my-6">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-300 flex items-center justify-center mx-auto shadow-2xs">
+              <Lock className="w-7 h-7 text-blue-800 dark:text-blue-400" />
             </div>
             <div className="space-y-1.5">
-              <h3 className="font-bold text-neutral-900 text-base">
+              <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-base">
                 Módulo Reservado para Administradores
               </h3>
-              <p className="text-xs text-neutral-600 leading-relaxed">
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
                 La creación, eliminación y administración de cuentas de usuario están restringidas exclusivamente al perfil de <strong>Administrador</strong>.
               </p>
             </div>
             <div className="pt-2">
               <button
                 onClick={() => setActiveSubTab('audit')}
-                className="px-4 py-2 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-blue-900 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors cursor-pointer"
               >
                 ← Volver al Log de Auditoría
               </button>
@@ -777,24 +777,24 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
         ) : (
         <div className="space-y-6">
           {/* Security Banner */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3 text-xs text-blue-950">
-            <Lock className="w-5 h-5 text-blue-800 shrink-0 mt-0.5" />
+          <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl flex items-start gap-3 text-xs text-blue-950 dark:text-blue-200">
+            <Lock className="w-5 h-5 text-blue-800 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <span className="font-bold text-sm block">Cifrado Criptográfico de Contraseñas Activo</span>
-              <p className="text-blue-900/80 leading-relaxed">
-                Todas las contraseñas se almacenan en la tabla <code className="bg-white/80 px-1 py-0.5 rounded font-mono font-bold">users</code> de SQLite mediante hash criptográfico irreversible <strong>PBKDF2 con HMAC-SHA512</strong> y 100.000 iteraciones con sal individual (Salt). Ninguna contraseña se guarda en texto plano.
+              <p className="text-blue-900/80 dark:text-blue-300/80 leading-relaxed">
+                Todas las contraseñas se almacenan en la tabla <code className="bg-white/80 dark:bg-neutral-800 px-1 py-0.5 rounded font-mono font-bold">users</code> de SQLite mediante hash criptográfico irreversible <strong>PBKDF2 con HMAC-SHA512</strong> y 100.000 iteraciones con sal individual (Salt). Ninguna contraseña se guarda en texto plano.
               </p>
             </div>
           </div>
 
           {/* Users Header and Actions */}
-          <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-4">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-4">
               <div>
-                <h3 className="font-bold text-neutral-900 text-sm">
+                <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
                   Cuentas de Acceso al Sistema
                 </h3>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
                   Usuarios autorizados para acceder, gestionar reemplazos y realizar auditorías.
                 </p>
               </div>
@@ -803,7 +803,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                 <button
                   onClick={loadUsers}
                   disabled={loadingUsers}
-                  className="px-3 py-1.5 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg border border-neutral-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg border border-neutral-300 dark:border-neutral-700 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loadingUsers ? 'animate-spin' : ''}`} />
                   <span>Refrescar</span>
@@ -811,7 +811,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
 
                 <button
                   onClick={() => setShowAddUserModal(true)}
-                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>+ Crear Usuario</span>
@@ -823,7 +823,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-medium">
+                  <tr className="bg-neutral-50 dark:bg-neutral-850 border-b border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium">
                     <th className="py-2.5 px-4">Usuario</th>
                     <th className="py-2.5 px-4">Nombre Completo / Cargo</th>
                     <th className="py-2.5 px-4">Rol</th>
@@ -831,35 +831,35 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                     <th className="py-2.5 px-4 text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-100">
+                <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                   {usersList.map(u => (
-                    <tr key={u.id} className="hover:bg-neutral-50/60 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-neutral-900">
+                    <tr key={u.id} className="hover:bg-neutral-50/60 dark:hover:bg-neutral-800/40 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold text-neutral-900 dark:text-neutral-100">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center font-bold text-xs uppercase">
+                          <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-900 dark:text-blue-300 flex items-center justify-center font-bold text-xs uppercase">
                             {u.username.substring(0, 2)}
                           </div>
                           <span>{u.username}</span>
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 font-semibold text-neutral-800">
+                      <td className="py-3 px-4 font-semibold text-neutral-800 dark:text-neutral-200">
                         {u.name}
                       </td>
 
                       <td className="py-3 px-4">
                         {u.role === 'admin' ? (
-                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 text-purple-900 border border-purple-200">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                             Administrador
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-900 border border-blue-200">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             Coordinador
                           </span>
                         )}
                       </td>
 
-                      <td className="py-3 px-4 font-mono text-neutral-500 text-[11px]">
+                      <td className="py-3 px-4 font-mono text-neutral-500 dark:text-neutral-400 text-[11px]">
                         {formatTimestamp(u.createdAt)}
                       </td>
 
@@ -867,7 +867,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                         {u.username !== 'admin' && u.id !== currentUser?.id && (
                           <button
                             onClick={() => handleDeleteUser(u)}
-                            className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                            className="p-1 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors cursor-pointer"
                             title="Eliminar usuario"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -887,16 +887,16 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       {/* Modal Add User */}
       {showAddUserModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full border border-neutral-200 overflow-hidden p-6 space-y-4">
-            <div className="flex items-center gap-3 border-b border-neutral-100 pb-3">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-900 flex items-center justify-center shrink-0">
+          <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl max-w-md w-full border border-neutral-200 dark:border-neutral-800 overflow-hidden p-6 space-y-4">
+            <div className="flex items-center gap-3 border-b border-neutral-100 dark:border-neutral-800 pb-3">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 flex items-center justify-center shrink-0">
                 <UserPlus className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-neutral-900 text-sm">
+                <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
                   Registrar Nuevo Usuario
                 </h3>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
                   La contraseña se cifrará automáticamente con PBKDF2.
                 </p>
               </div>
@@ -904,47 +904,47 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
 
             <form onSubmit={handleCreateUser} className="space-y-3">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-neutral-700">Nombre de Usuario (Login)</label>
+                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Nombre de Usuario (Login)</label>
                 <input
                   type="text"
                   required
                   value={newUserForm.username}
                   onChange={e => setNewUserForm({ ...newUserForm, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
                   placeholder="ej. cprimaria"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-blue-800 font-mono"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-800 dark:focus:border-blue-500 font-mono"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-neutral-700">Nombre Completo y Cargo</label>
+                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Nombre Completo y Cargo</label>
                 <input
                   type="text"
                   required
                   value={newUserForm.name}
                   onChange={e => setNewUserForm({ ...newUserForm, name: e.target.value })}
                   placeholder="ej. Lic. Martha Gómez (Coord. Primaria)"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-blue-800"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-800 dark:focus:border-blue-500"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-neutral-700">Contraseña (Mínimo 6 caracteres)</label>
+                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Contraseña (Mínimo 6 caracteres)</label>
                 <input
                   type="password"
                   required
                   value={newUserForm.password}
                   onChange={e => setNewUserForm({ ...newUserForm, password: e.target.value })}
                   placeholder="••••••••••••"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-blue-800 font-mono"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-800 dark:focus:border-blue-500 font-mono"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-neutral-700">Rol en el Sistema</label>
+                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">Rol en el Sistema</label>
                 <select
                   value={newUserForm.role}
                   onChange={e => setNewUserForm({ ...newUserForm, role: e.target.value as UserRole })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-blue-800 bg-white"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-blue-800 dark:focus:border-blue-500"
                 >
                   <option value="coordinator">Coordinador (Gestión de Reemplazos)</option>
                   <option value="admin">Administrador (Control Total & Backups)</option>
@@ -955,13 +955,13 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddUserModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 rounded-lg transition-colors cursor-pointer shadow-xs"
+                  className="px-4 py-2 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors cursor-pointer shadow-xs"
                 >
                   Crear y Cifrar Usuario
                 </button>
@@ -974,25 +974,25 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       {/* Confirmation Modal */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full border border-neutral-200 overflow-hidden p-6 space-y-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl max-w-md w-full border border-neutral-200 dark:border-neutral-800 overflow-hidden p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-neutral-900 text-sm">
+                <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
                   ¿Confirmar Restauración de Base de Datos?
                 </h3>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
                   Esta acción reemplazará la base de datos actual con la del archivo seleccionado.
                 </p>
               </div>
             </div>
 
-            <div className="p-3 bg-neutral-50 rounded-lg border border-neutral-200 text-xs space-y-1 font-mono text-neutral-700">
+            <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 text-xs space-y-1 font-mono text-neutral-700 dark:text-neutral-300">
               <span className="block font-semibold">Archivo a restaurar:</span>
-              <span className="block text-blue-900 font-bold">{confirmModal.targetName}</span>
-              <span className="block text-neutral-500 text-[11px] pt-1">
+              <span className="block text-blue-900 dark:text-blue-300 font-bold">{confirmModal.targetName}</span>
+              <span className="block text-neutral-500 dark:text-neutral-400 text-[11px] pt-1">
                 🛡️ Se creará automáticamente un respaldo previo del estado actual antes de proceder.
               </span>
             </div>
@@ -1001,14 +1001,14 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
               <button
                 onClick={() => setConfirmModal({ isOpen: false, type: 'restore_local' })}
                 disabled={actionInProgress !== null}
-                className="px-4 py-2 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleExecuteRestore}
                 disabled={actionInProgress !== null}
-                className="px-4 py-2 text-xs font-bold text-white bg-amber-700 hover:bg-amber-800 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="px-4 py-2 text-xs font-bold text-white bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 {actionInProgress ? (
                   <>

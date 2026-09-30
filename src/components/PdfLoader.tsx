@@ -1,22 +1,48 @@
 import React, { useState } from 'react';
-import { FileUp, CheckCircle, AlertCircle, RefreshCw, School, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
-import { Teacher } from '../types';
+import {
+  FileUp,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  School,
+  FileText,
+  ArrowRight,
+  ShieldCheck,
+  CalendarCheck,
+  Database,
+  Loader2,
+  Lock
+} from 'lucide-react';
+import { Teacher, ScheduleVersionInfo, AppUser } from '../types';
 import { parsePdfSchedule } from '../utils/pdfParser';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
+import { DEFAULT_SCHEDULE_VERSION, createLocalBackupApi } from '../utils/storage';
 
 interface PdfLoaderProps {
   teachers: Teacher[];
-  onUpdateTeachers: (newTeachers: Teacher[]) => void;
+  scheduleVersion: ScheduleVersionInfo;
+  currentUser?: AppUser | null;
+  onUpdateTeachers: (newTeachers: Teacher[]) => Promise<void> | void;
+  onUpdateScheduleVersion: (version: ScheduleVersionInfo) => void;
   onNavigateToHub: () => void;
 }
 
 export const PdfLoader: React.FC<PdfLoaderProps> = ({
   teachers,
+  scheduleVersion,
+  currentUser,
   onUpdateTeachers,
+  onUpdateScheduleVersion,
   onNavigateToHub
 }) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [processingStep, setProcessingStep] = useState<string>('');
+  const [successInfo, setSuccessInfo] = useState<{
+    message: string;
+    backupName?: string;
+    teachersCount: number;
+    slotsCount: number;
+  } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
 
@@ -28,22 +54,68 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
 
     setIsProcessing(true);
     setErrorMessage(null);
-    setSuccessMessage(null);
+    setSuccessInfo(null);
+
+    const operatorName = currentUser
+      ? `${currentUser.name} (${currentUser.username})`
+      : 'Administrador del Sistema';
 
     try {
+      // Step 1: Automatic Preventive Backup before replacing schedule
+      setProcessingStep('Paso 1/3: Creando copia de seguridad preventiva de la base de datos...');
+      let backupFilename: string | undefined = undefined;
+      try {
+        const backupRes = await createLocalBackupApi(
+          operatorName,
+          `Backup automático preventivo antes de cargar nuevo horario "${file.name}"`
+        );
+        if (backupRes.ok && backupRes.filename) {
+          backupFilename = backupRes.filename;
+        }
+      } catch (backupErr) {
+        console.warn('Backup creation notice:', backupErr);
+      }
+
+      // Step 2: Spatial & Text PDF Grid Analysis
+      setProcessingStep('Paso 2/3: Analizando docentes y cuadrículas de horario desde aSc Timetables...');
       const result = await parsePdfSchedule(file);
-      onUpdateTeachers(result.teachers);
-      setSuccessMessage(
-        `¡PDF procesado exitosamente! Se analizaron ${result.pagesProcessed} páginas del horario escolar aSc Timetables y se actualizaron ${result.teachers.length} profesores.`
-      );
+
+      // Step 3: Synchronize with SQLite Database and App state
+      setProcessingStep('Paso 3/3: Guardando nuevos docentes y horarios en la base de datos...');
+      await onUpdateTeachers(result.teachers);
+
+      const newVersionInfo: ScheduleVersionInfo = {
+        versionName: file.name.replace(/\.[^/.]+$/, ''),
+        fileName: file.name,
+        uploadedAt: new Date().toLocaleString('es-CO', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        source: 'uploaded_pdf',
+        pagesProcessed: result.pagesProcessed,
+        teachersCount: result.teachers.length,
+        academicYear: result.academicYear || '2026/2027'
+      };
+
+      onUpdateScheduleVersion(newVersionInfo);
+
+      setSuccessInfo({
+        message: `¡Horario y nómina docente actualizados con éxito desde "${file.name}"!`,
+        backupName: backupFilename,
+        teachersCount: result.teachers.length,
+        slotsCount: result.totalSlotsExtracted
+      });
     } catch (err: any) {
       console.error(err);
-      // If error or unhandled format, allow fallback to official verified dataset
       setErrorMessage(
-        `Error al leer el archivo PDF: ${err.message || 'Formato no soportado'}. Puedes restaurar los datos verificados del colegio abajo.`
+        `Error al procesar el archivo PDF: ${err.message || 'Formato no soportado'}. Puedes restaurar el horario oficial predeterminado abajo.`
       );
     } finally {
       setIsProcessing(false);
+      setProcessingStep('');
     }
   };
 
@@ -55,12 +127,22 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
     }
   };
 
-  const handleRestoreDefault = () => {
-    onUpdateTeachers(INITIAL_TEACHERS);
-    setSuccessMessage(
-      'Se ha restaurado el horario oficial de la Fundación Colegio Bilingüe de Valledupar (37 docentes, año 2026/2027).'
-    );
-    setErrorMessage(null);
+  const handleRestoreDefault = async () => {
+    setIsProcessing(true);
+    setProcessingStep('Restaurando horario oficial verificado...');
+    try {
+      await onUpdateTeachers(INITIAL_TEACHERS);
+      onUpdateScheduleVersion(DEFAULT_SCHEDULE_VERSION);
+      setSuccessInfo({
+        message: 'Se ha restaurado el horario oficial de la Fundación Colegio Bilingüe de Valledupar (37 docentes, año 2026/2027).',
+        teachersCount: INITIAL_TEACHERS.length,
+        slotsCount: INITIAL_TEACHERS.reduce((acc, t) => acc + t.slots.length, 0)
+      });
+      setErrorMessage(null);
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep('');
+    }
   };
 
   const totalClasses = teachers.reduce((acc, t) => acc + t.slots.filter(s => !s.isMeeting).length, 0);
@@ -68,39 +150,56 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Header */}
-      <div className="border-b border-neutral-200 pb-5">
-        <h1 className="text-xl font-bold tracking-tight text-neutral-900">
-          Carga y Sincronización del Horario en PDF
-        </h1>
-        <p className="text-xs text-neutral-500 mt-1">
-          La aplicación extrae las mallas curriculares y horarios por profesor desde el archivo PDF generado en aSc Timetables para calcular automáticamente las disponibilidades de cada periodo.
-        </p>
+      <div className="border-b border-neutral-200 dark:border-neutral-800 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+            Carga y Actualización del Horario Escolar en PDF
+          </h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+            El sistema realiza una copia de seguridad preventiva automática de la base de datos, analiza los nombres de los docentes, departamentos y cuadrículas semanales de <em>aSc Timetables</em>, y actualiza todos los módulos en tiempo real.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start md:self-auto bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 rounded-lg px-3 py-1.5 text-xs text-blue-900 dark:text-blue-300">
+          <Database className="w-4 h-4 text-blue-700 dark:text-blue-400 shrink-0" />
+          <span>Backup automático activo previo a cada carga</span>
+        </div>
       </div>
 
       {/* Status Banner */}
-      <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-300 flex items-center justify-center shrink-0">
             <School className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-neutral-900">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
                 Fundación Colegio Bilingüe de Valledupar
               </span>
-              <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+              <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                 <CheckCircle className="w-3 h-3" />
-                Cargado y Activo
+                {scheduleVersion.source === 'uploaded_pdf' ? 'PDF Personalizado Activo' : 'Horario Oficial Activo'}
               </span>
             </div>
-            <div className="text-xs text-neutral-500 mt-1 flex flex-wrap gap-x-3 gap-y-1">
-              <span>Año Lectivo: <strong>2026/2027</strong></span>
+            
+            {/* Active Schedule Version pill */}
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-blue-800 dark:text-blue-300 font-medium">
+              <CalendarCheck className="w-3.5 h-3.5" />
+              <span>Versión activa: <strong>{scheduleVersion.fileName || scheduleVersion.versionName}</strong></span>
+              {scheduleVersion.uploadedAt && (
+                <span className="text-neutral-400 dark:text-neutral-500 text-[11px]">({scheduleVersion.uploadedAt})</span>
+              )}
+            </div>
+
+            <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+              <span>Año Lectivo: <strong className="text-neutral-700 dark:text-neutral-200">{scheduleVersion.academicYear || '2026/2027'}</strong></span>
               <span>·</span>
-              <span>Total Docentes: <strong>{teachers.length}</strong></span>
+              <span>Total Docentes: <strong className="text-neutral-700 dark:text-neutral-200">{teachers.length}</strong></span>
               <span>·</span>
-              <span>Horas de Clase Semanales: <strong>{totalClasses}</strong></span>
+              <span>Horas de Clase Semanales: <strong className="text-neutral-700 dark:text-neutral-200">{totalClasses}</strong></span>
               <span>·</span>
-              <span>Motor: <strong>aSc Timetables v1.8</strong></span>
+              <span>Motor: <strong className="text-neutral-700 dark:text-neutral-200">aSc Timetables v1.8</strong></span>
             </div>
           </div>
         </div>
@@ -108,14 +207,15 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleRestoreDefault}
-            className="px-3 py-2 text-xs font-medium text-neutral-700 hover:text-neutral-900 bg-neutral-50 hover:bg-neutral-100 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+            disabled={isProcessing}
+            className="px-3 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-neutral-500" />
+            <RefreshCw className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
             <span>Recargar Horario Oficial FCBV</span>
           </button>
           <button
             onClick={onNavigateToHub}
-            className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <span>Ir a Asignar Reemplazos</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -123,17 +223,42 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
         </div>
       </div>
 
-      {/* Notifications */}
-      {successMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3 text-emerald-900 text-xs">
-          <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span>{successMessage}</span>
+      {/* Notifications and Progress */}
+      {isProcessing && (
+        <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 rounded-xl p-4 flex items-center gap-3 text-blue-950 dark:text-blue-200 text-xs shadow-xs animate-pulse">
+          <Loader2 className="w-5 h-5 text-blue-700 dark:text-blue-400 animate-spin shrink-0" />
+          <div>
+            <span className="font-bold text-sm block">Procesando horario escolar...</span>
+            <span className="text-blue-800/90 dark:text-blue-300/90 font-medium">{processingStep}</span>
+          </div>
         </div>
       )}
 
-      {errorMessage && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 text-red-900 text-xs">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+      {successInfo && !isProcessing && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 space-y-2 text-emerald-950 dark:text-emerald-200 text-xs shadow-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="font-bold text-sm">{successInfo.message}</span>
+          </div>
+          <div className="pl-7 space-y-1 text-emerald-900/90 dark:text-emerald-300/90">
+            {successInfo.backupName && (
+              <p className="flex items-center gap-1.5">
+                <span>🛡️ <strong>Copia de seguridad preventiva creada:</strong></span>
+                <code className="font-mono bg-white/80 dark:bg-neutral-800 px-1 py-0.5 rounded border border-emerald-300 dark:border-emerald-800 font-bold">
+                  {successInfo.backupName}
+                </code>
+              </p>
+            )}
+            <p>
+              📊 Se sincronizaron <strong>{successInfo.teachersCount} profesores</strong> y <strong>{successInfo.slotsCount} bloques semanales</strong> en la base de datos SQLite y en la interfaz.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {errorMessage && !isProcessing && (
+        <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-center gap-3 text-red-900 dark:text-red-200 text-xs">
+          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
@@ -148,27 +273,27 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
         onDrop={handleDrop}
         className={`border-2 border-dashed rounded-xl p-10 text-center transition-all ${
           dragActive
-            ? 'border-blue-600 bg-blue-50/50'
-            : 'border-neutral-300 bg-white hover:border-neutral-400'
+            ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30'
+            : 'border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-neutral-400 dark:hover:border-neutral-600'
         }`}
       >
         <div className="max-w-md mx-auto space-y-4">
-          <div className="w-14 h-14 rounded-full bg-blue-50 text-blue-800 flex items-center justify-center mx-auto">
+          <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 flex items-center justify-center mx-auto">
             <FileUp className="w-7 h-7" />
           </div>
 
           <div>
-            <h3 className="text-sm font-bold text-neutral-900">
-              Cargar Horario en PDF (aSc Timetables)
+            <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+              Cargar Nuevo Horario en PDF (aSc Timetables)
             </h3>
-            <p className="text-xs text-neutral-500 mt-1">
-              Arrastra y suelta aquí el archivo PDF con los horarios de clase o selecciónalo desde tu computador.
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+              Arrastra y suelta aquí el archivo PDF con los horarios de clase o selecciónalo desde tu computador. Se creará un backup automático antes de sustituir la malla.
             </p>
           </div>
 
           <div>
-            <label className="inline-block px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg cursor-pointer transition-colors shadow-xs">
-              {isProcessing ? 'Analizando archivo PDF...' : 'Seleccionar Archivo PDF'}
+            <label className={`inline-block px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg cursor-pointer transition-colors shadow-xs ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+              {isProcessing ? 'Procesando archivo...' : 'Seleccionar Archivo PDF'}
               <input
                 type="file"
                 accept=".pdf"
@@ -183,30 +308,30 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
             </label>
           </div>
 
-          <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-400">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Procesamiento local seguro y cálculo instantáneo</span>
+          <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-400 dark:text-neutral-500">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Respaldo automático previo en SQLite y cálculo instantáneo de disponibilidad</span>
           </div>
         </div>
       </div>
 
       {/* Verified Schedule Breakdown */}
-      <div className="bg-white border border-neutral-200 rounded-xl shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xs overflow-hidden">
+        <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-bold text-neutral-900">
+            <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
               Malla Docente Cargada ({teachers.length} Profesores)
             </h3>
-            <p className="text-[11px] text-neutral-500">
+            <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
               Horario activo para la detección automática de ausencias y cálculo de suplentes
             </p>
           </div>
-          <span className="text-[11px] font-mono text-neutral-500">
+          <span className="text-[11px] font-mono text-neutral-500 dark:text-neutral-400">
             {totalClasses} bloques lectivos
           </span>
         </div>
 
-        <div className="divide-y divide-neutral-100 max-h-[500px] overflow-y-auto">
+        <div className="divide-y divide-neutral-100 dark:divide-neutral-800 max-h-[500px] overflow-y-auto">
           {teachers.map((teacher, index) => {
             const classSlots = teacher.slots.filter(s => !s.isMeeting).length;
             const meetingSlots = teacher.slots.filter(s => s.isMeeting).length;
@@ -214,17 +339,17 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
             return (
               <div
                 key={teacher.id}
-                className="p-3.5 hover:bg-neutral-50 flex items-center justify-between text-xs transition-colors"
+                className="p-3.5 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 flex items-center justify-between text-xs transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-neutral-400 w-6 text-center text-[11px]">
+                  <span className="font-mono text-neutral-400 dark:text-neutral-500 w-6 text-center text-[11px]">
                     {index + 1}
                   </span>
                   <div>
-                    <span className="font-bold text-neutral-900 block">
+                    <span className="font-bold text-neutral-900 dark:text-neutral-100 block">
                       {teacher.name}
                     </span>
-                    <span className="text-[11px] text-neutral-500">
+                    <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
                       {teacher.department} · {teacher.section}
                     </span>
                   </div>
@@ -232,11 +357,11 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
 
                 <div className="flex items-center gap-3 text-right">
                   <div>
-                    <span className="font-mono font-bold text-neutral-800 block tabular-nums">
+                    <span className="font-mono font-bold text-neutral-800 dark:text-neutral-200 block tabular-nums">
                       {classSlots} horas/semana
                     </span>
                     {meetingSlots > 0 && (
-                      <span className="text-[10px] text-amber-700 block">
+                      <span className="text-[10px] text-amber-700 dark:text-amber-400 block">
                         +{meetingSlots} h reunión/PLC
                       </span>
                     )}

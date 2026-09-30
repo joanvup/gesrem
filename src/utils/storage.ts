@@ -1,4 +1,4 @@
-import { Teacher, AbsenceRecord, ReplacementAssignment, AuditLogEntry, BackupPoint, AppUser, UserRole } from '../types';
+import { Teacher, AbsenceRecord, ReplacementAssignment, AuditLogEntry, BackupPoint, AppUser, UserRole, ScheduleVersionInfo } from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
 
 const STORAGE_KEYS = {
@@ -7,7 +7,18 @@ const STORAGE_KEYS = {
   REPLACEMENTS: 'reemplaza_replacements_v1',
   CUSTOM_CONFIG: 'reemplaza_config_v1',
   AUTH_TOKEN: 'gesrem_auth_token_v1',
-  AUTH_USER: 'gesrem_auth_user_v1'
+  AUTH_USER: 'gesrem_auth_user_v1',
+  SCHEDULE_VERSION: 'reemplaza_schedule_version_v1'
+};
+
+export const DEFAULT_SCHEDULE_VERSION: ScheduleVersionInfo = {
+  versionName: 'Horario Oficial FCBV 2026/2027',
+  source: 'official_default',
+  fileName: 'Horario_Oficial_FCBV_2026_2027.pdf',
+  uploadedAt: '01/09/2026 07:00',
+  teachersCount: 37,
+  pagesProcessed: 37,
+  academicYear: '2026/2027'
 };
 
 // Initial sample absences for realistic demonstration if none exist
@@ -76,10 +87,14 @@ export async function fetchTeachersFromApi(): Promise<Teacher[]> {
 
 export async function syncTeachersToApi(teachers: Teacher[]): Promise<boolean> {
   saveTeachers(teachers);
+  const token = getStoredAuthToken();
   try {
     const res = await fetch('/api/teachers', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
       body: JSON.stringify(teachers)
     });
     return res.ok;
@@ -195,26 +210,38 @@ export async function fetchAuditLogsApi(limit = 200): Promise<AuditLogEntry[]> {
   return [];
 }
 
-export async function createLocalBackupApi(userName = 'Coordinación Académica'): Promise<string | null> {
+export async function createLocalBackupApi(
+  userName = 'Coordinación Académica',
+  description?: string
+): Promise<{ ok: boolean; filename?: string; error?: string }> {
+  const token = getStoredAuthToken();
   try {
     const res = await fetch('/api/backup/create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userName })
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify({ userName, description })
     });
     if (res.ok) {
       const data = await res.json();
-      return data.filename;
+      return { ok: true, filename: data.filename };
     }
-  } catch (err) {
+    const errData = await res.json().catch(() => ({}));
+    return { ok: false, error: errData.error || 'Error al generar backup' };
+  } catch (err: any) {
     console.error('Failed to create local backup', err);
+    return { ok: false, error: err.message };
   }
-  return null;
 }
 
 export async function fetchLocalBackupsListApi(): Promise<BackupPoint[]> {
+  const token = getStoredAuthToken();
   try {
-    const res = await fetch('/api/backup/list');
+    const res = await fetch('/api/backup/list', {
+      headers: { Authorization: `Bearer ${token || ''}` }
+    });
     if (res.ok) {
       return await res.json();
     }
@@ -225,10 +252,14 @@ export async function fetchLocalBackupsListApi(): Promise<BackupPoint[]> {
 }
 
 export async function restoreLocalBackupApi(filename: string, userName = 'Coordinación Académica'): Promise<boolean> {
+  const token = getStoredAuthToken();
   try {
     const res = await fetch('/api/backup/restore-local', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
       body: JSON.stringify({ filename, userName })
     });
     return res.ok;
@@ -239,6 +270,7 @@ export async function restoreLocalBackupApi(filename: string, userName = 'Coordi
 }
 
 export async function restoreUploadBackupApi(file: File, userName = 'Coordinación Académica'): Promise<boolean> {
+  const token = getStoredAuthToken();
   try {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
@@ -250,7 +282,10 @@ export async function restoreUploadBackupApi(file: File, userName = 'Coordinaci�
 
     const res = await fetch('/api/backup/restore-upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
       body: JSON.stringify({
         base64Data,
         filename: file.name,
@@ -519,4 +554,28 @@ export function resetToDefaultData(): void {
   localStorage.removeItem(STORAGE_KEYS.TEACHERS);
   localStorage.removeItem(STORAGE_KEYS.ABSENCES);
   localStorage.removeItem(STORAGE_KEYS.REPLACEMENTS);
+  localStorage.removeItem(STORAGE_KEYS.SCHEDULE_VERSION);
+}
+
+export function loadScheduleVersion(): ScheduleVersionInfo {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SCHEDULE_VERSION);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.versionName) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Error loading schedule version from storage', e);
+  }
+  return DEFAULT_SCHEDULE_VERSION;
+}
+
+export function saveScheduleVersion(versionInfo: ScheduleVersionInfo): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SCHEDULE_VERSION, JSON.stringify(versionInfo));
+  } catch (e) {
+    console.error('Error saving schedule version to storage', e);
+  }
 }

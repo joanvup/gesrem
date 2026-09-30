@@ -432,7 +432,8 @@ app.post('/api/backup/create', async (req, res) => {
     if (!admin) return;
 
     const userName = `${admin.name} (${admin.username})`;
-    const filename = await createLocalBackup(userName);
+    const description = req.body?.description;
+    const filename = await createLocalBackup(userName, description);
     res.json({ ok: true, filename });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

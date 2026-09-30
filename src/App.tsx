@@ -15,7 +15,7 @@ import { PrintSummaryModal } from './components/PrintSummaryModal';
 import { AuditAndBackup } from './components/AuditAndBackup';
 import { LoginScreen } from './components/LoginScreen';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
-import { Teacher, AbsenceRecord, ReplacementAssignment, DayOfWeek, AppUser } from './types';
+import { Teacher, AbsenceRecord, ReplacementAssignment, DayOfWeek, AppUser, ScheduleVersionInfo } from './types';
 import {
   loadTeachers,
   saveTeachers,
@@ -23,6 +23,8 @@ import {
   saveAbsences,
   loadReplacements,
   saveReplacements,
+  loadScheduleVersion,
+  saveScheduleVersion,
   fetchTeachersFromApi,
   fetchAbsencesFromApi,
   fetchReplacementsFromApi,
@@ -45,6 +47,7 @@ export default function App() {
   const [teachers, setTeachers] = useState<Teacher[]>(loadTeachers);
   const [absences, setAbsences] = useState<AbsenceRecord[]>(loadAbsences);
   const [replacements, setReplacements] = useState<ReplacementAssignment[]>(loadReplacements);
+  const [scheduleVersion, setScheduleVersion] = useState<ScheduleVersionInfo>(loadScheduleVersion);
   const [sqliteConnected, setSqliteConnected] = useState<boolean>(true);
 
   const [activeTab, setActiveTab] = useState<'hub' | 'board' | 'schedule' | 'analytics' | 'pdf' | 'audit'>('hub');
@@ -137,6 +140,10 @@ export default function App() {
     saveReplacements(replacements);
   }, [replacements]);
 
+  useEffect(() => {
+    saveScheduleVersion(scheduleVersion);
+  }, [scheduleVersion]);
+
   const handleSaveAbsenceAndReplacements = async (
     newAbsence: AbsenceRecord,
     newAssignments: ReplacementAssignment[]
@@ -196,7 +203,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100/60 text-neutral-900 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-neutral-100/60 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col font-sans antialiased transition-colors duration-150">
       {/* Navigation Top Bar */}
       <Navbar
         activeTab={activeTab}
@@ -260,7 +267,10 @@ export default function App() {
         {activeTab === 'pdf' && currentUser?.role === 'admin' && (
           <PdfLoader
             teachers={teachers}
+            scheduleVersion={scheduleVersion}
+            currentUser={currentUser}
             onUpdateTeachers={handleUpdateTeachers}
+            onUpdateScheduleVersion={setScheduleVersion}
             onNavigateToHub={() => setActiveTab('hub')}
           />
         )}
@@ -300,17 +310,41 @@ export default function App() {
       )}
 
       {/* Footer conforming to anti-slop rules (quiet institutional copyright and metadata, no fake telemetry) */}
-      <footer className="border-t border-neutral-200 bg-white py-6 mt-12 text-xs text-neutral-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-neutral-800">Fundación Colegio Bilingüe de Valledupar</span>
-            <span>·</span>
+      <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 py-5 mt-12 text-xs text-neutral-500 dark:text-neutral-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+            <span className="font-semibold text-neutral-800 dark:text-neutral-200">Fundación Colegio Bilingüe de Valledupar</span>
+            <span className="hidden sm:inline">·</span>
             <span>Sistema de Reemplazos Docentes 2026/2027</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span>Base de Datos: SQLite (<code className="font-mono text-[11px] text-neutral-700 bg-neutral-100 px-1 py-0.5 rounded">school_database.sqlite</code>)</span>
-            <span>·</span>
-            <span>aSc Timetables v1.8</span>
+
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-3 gap-y-1.5 text-[11px]">
+            {/* Dynamic Active PDF Schedule Version */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-300 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400"></span>
+              <span>
+                Horario Activo:{' '}
+                <strong className="font-semibold font-mono">
+                  {scheduleVersion.fileName || scheduleVersion.versionName}
+                </strong>
+              </span>
+              {scheduleVersion.source === 'uploaded_pdf' && scheduleVersion.uploadedAt && (
+                <span className="text-blue-700 dark:text-blue-400 text-[10px]">
+                  · Cargado: {scheduleVersion.uploadedAt} ({scheduleVersion.teachersCount || teachers.length} Docentes)
+                </span>
+              )}
+              {scheduleVersion.source === 'official_default' && (
+                <span className="text-blue-700 dark:text-blue-400 text-[10px]">
+                  · Oficial ({scheduleVersion.teachersCount || 37} Docentes · aSc v1.8)
+                </span>
+              )}
+            </div>
+
+            <span className="hidden lg:inline text-neutral-300 dark:text-neutral-700">|</span>
+
+            <span>
+              Base de Datos: SQLite (<code className="font-mono text-[10px] text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded border border-neutral-200 dark:border-neutral-700">school_database.sqlite</code>)
+            </span>
           </div>
         </div>
       </footer>

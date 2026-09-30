@@ -205,18 +205,18 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-neutral-200 overflow-hidden my-6 flex flex-col max-h-[92vh]"
+        className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl max-w-4xl w-full border border-neutral-200 dark:border-neutral-800 overflow-hidden my-6 flex flex-col max-h-[92vh]"
       >
         {/* Modal Controls Bar (hidden during print) */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 bg-neutral-50 print:hidden shrink-0 space-y-3">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 print:hidden shrink-0 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <School className="w-5 h-5 text-blue-900 shrink-0" />
+              <School className="w-5 h-5 text-blue-900 dark:text-blue-400 shrink-0" />
               <div>
-                <h3 className="font-bold text-neutral-900 text-xs sm:text-sm truncate">
+                <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-xs sm:text-sm truncate">
                   {title}
                 </h3>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
                   {dayLabel}, {date} · {displayedAssignments.length} reemplazos
                 </p>
               </div>
@@ -225,7 +225,7 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
             <div className="flex flex-wrap items-center gap-1.5 shrink-0">
               <button
                 onClick={handleShareSummary}
-                className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span className="hidden xs:inline">WhatsApp</span>
@@ -233,27 +233,27 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
               <button
                 onClick={handleDownloadPdf}
                 disabled={isExportingPdf}
-                className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-neutral-800 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-700 rounded-lg transition-colors flex items-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
                 title="Descargar archivo PDF oficial para imprimir o archivar"
               >
                 {isExportingPdf ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-900" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-900 dark:text-blue-400" />
                 ) : (
-                  <Download className="w-3.5 h-3.5 text-blue-900" />
+                  <Download className="w-3.5 h-3.5 text-blue-900 dark:text-blue-400" />
                 )}
                 <span>{isExportingPdf ? 'Generando PDF...' : 'Descargar PDF'}</span>
               </button>
               <button
                 onClick={handlePrint}
                 disabled={isExportingPdf}
-                className="px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                className="px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Imprimir Planilla</span>
               </button>
               <button
                 onClick={onClose}
-                className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-neutral-800 hover:text-neutral-900 bg-neutral-200 hover:bg-neutral-300 border border-neutral-300 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-neutral-800 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-700 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
               >
                 <X className="w-4 h-4" />
                 <span className="hidden sm:inline">Cerrar</span>
@@ -263,11 +263,11 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
 
           {/* Feedback Notice Banner */}
           {noticeMessage && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-900 text-xs px-3 py-2 rounded-lg flex items-center justify-between gap-2 shadow-2xs animate-fade-in">
+            <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 text-blue-900 dark:text-blue-300 text-xs px-3 py-2 rounded-lg flex items-center justify-between gap-2 shadow-2xs animate-fade-in">
               <span className="font-medium">{noticeMessage}</span>
               <button
                 onClick={() => setNoticeMessage(null)}
-                className="text-blue-700 hover:text-blue-900 font-bold px-1.5 py-0.5 rounded cursor-pointer"
+                className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 font-bold px-1.5 py-0.5 rounded cursor-pointer"
               >
                 ✕
               </button>
@@ -275,14 +275,14 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
           )}
 
           {/* Section Filter Pills for Printing */}
-          <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-neutral-200">
-            <span className="text-xs text-neutral-500 font-medium mr-1">Filtrar para impresión:</span>
+          <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-neutral-200 dark:border-neutral-800">
+            <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mr-1">Filtrar para impresión:</span>
             <button
               onClick={() => setSelectedSection('all')}
               className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                 selectedSection === 'all'
-                  ? 'bg-neutral-900 text-white shadow-2xs'
-                  : 'text-neutral-600 hover:bg-neutral-200'
+                  ? 'bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 shadow-2xs'
+                  : 'text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800'
               }`}
             >
               Todas las Secciones ({sortedAssignments.length})
@@ -291,8 +291,8 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
               onClick={() => setSelectedSection('Primaria')}
               className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                 selectedSection === 'Primaria'
-                  ? 'bg-amber-100 text-amber-950 font-bold border border-amber-300 shadow-2xs'
-                  : 'text-neutral-600 hover:bg-neutral-200'
+                  ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-950 dark:text-amber-200 font-bold border border-amber-300 dark:border-amber-700 shadow-2xs'
+                  : 'text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800'
               }`}
             >
               🎒 Primaria ({primariaAssignments.length})
@@ -301,8 +301,8 @@ export const PrintSummaryModal: React.FC<PrintSummaryModalProps> = ({
               onClick={() => setSelectedSection('Bachillerato')}
               className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                 selectedSection === 'Bachillerato'
-                  ? 'bg-indigo-100 text-indigo-950 font-bold border border-indigo-300 shadow-2xs'
-                  : 'text-neutral-600 hover:bg-neutral-200'
+                  ? 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-950 dark:text-indigo-200 font-bold border border-indigo-300 dark:border-indigo-700 shadow-2xs'
+                  : 'text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800'
               }`}
             >
               🎓 Bachillerato ({bachilleratoAssignments.length})
