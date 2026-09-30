@@ -10,7 +10,8 @@ import {
   AuditLogEntry,
   BackupPoint,
   AppUser,
-  UserRole
+  UserRole,
+  SmtpConfig
 } from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
 
@@ -187,6 +188,14 @@ function initTables(db: Database): void {
       name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'coordinator',
       created_at TEXT NOT NULL
+    );
+  `);
+
+  // 7. App settings table (for SMTP and school configurations)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     );
   `);
 
@@ -875,4 +884,131 @@ export async function deleteUserInDb(userId: string, operatorName = 'Administrad
 
   return true;
 }
+
+// ----------------- SMTP Settings Operations -----------------
+
+const DEFAULT_SMTP_CONFIG: SmtpConfig = {
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  user: '',
+  pass: '',
+  fromName: 'Fundación Colegio Bilingüe de Valledupar',
+  fromEmail: '',
+  enabled: false
+};
+
+export async function getSmtpConfigFromDb(): Promise<SmtpConfig> {
+  const db = await getDatabase();
+  const res = db.exec("SELECT value FROM app_settings WHERE key = 'smtp_config'");
+  if (res && res.length > 0 && res[0].values.length > 0) {
+    try {
+      const raw = res[0].values[0][0] as string;
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_SMTP_CONFIG, ...parsed };
+    } catch {
+      return DEFAULT_SMTP_CONFIG;
+    }
+  }
+  return DEFAULT_SMTP_CONFIG;
+}
+
+export async function saveSmtpConfigInDb(config: SmtpConfig, userName = 'Coordinación Académica'): Promise<void> {
+  const db = await getDatabase();
+  db.run(
+    `INSERT INTO app_settings (key, value) VALUES ('smtp_config', ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [JSON.stringify(config)]
+  );
+  saveDatabase(db);
+  await addAuditLog({
+    action: 'UPDATE_STATUS',
+    entityType: 'DATABASE',
+    entityId: 'smtp_config',
+    userName,
+    details: `Configuración de servidor SMTP (${config.host}:${config.port}, remitente: ${config.fromEmail || config.user}, estado: ${config.enabled ? 'Activo' : 'Inactivo'}) guardada.`
+  });
+}
+
+// ----------------- Teacher Email & Profile Updates -----------------
+
+export async function updateTeacherEmailInDb(
+  teacherId: string,
+  email: string,
+  userName = 'Coordinación Académica'
+): Promise<boolean> {
+  const db = await getDatabase();
+  const teacherRes = db.exec('SELECT name, email FROM teachers WHERE id = ?', [teacherId]);
+  if (!teacherRes || teacherRes.length === 0 || teacherRes[0].values.length === 0) {
+    return false;
+  }
+  const teacherName = teacherRes[0].values[0][0] as string;
+  const oldEmail = (teacherRes[0].values[0][1] as string) || '(ninguno)';
+
+  db.run('UPDATE teachers SET email = ? WHERE id = ?', [email.trim(), teacherId]);
+  saveDatabase(db);
+
+  await addAuditLog({
+    action: 'UPDATE_STATUS',
+    entityType: 'TEACHER',
+    entityId: teacherId,
+    userName,
+    details: `Correo institucional de ${teacherName} actualizado de "${oldEmail}" a "${email.trim()}".`,
+    previousValue: oldEmail,
+    newValue: email.trim()
+  });
+
+  return true;
+}
+
+export async function updateTeachersBulkInDb(
+  updates: Array<{ id: string; email?: string; phone?: string; department?: string; section?: string }>,
+  userName = 'Coordinación Académica'
+): Promise<number> {
+  const db = await getDatabase();
+  let updatedCount = 0;
+
+  for (const item of updates) {
+    if (!item.id) continue;
+    const updateClauses: string[] = [];
+    const params: any[] = [];
+
+    if (item.email !== undefined) {
+      updateClauses.push('email = ?');
+      params.push(item.email.trim());
+    }
+    if (item.phone !== undefined) {
+      updateClauses.push('phone = ?');
+      params.push(item.phone.trim());
+    }
+    if (item.department !== undefined) {
+      updateClauses.push('department = ?');
+      params.push(item.department.trim());
+    }
+    if (item.section !== undefined) {
+      updateClauses.push('section = ?');
+      params.push(item.section.trim());
+    }
+
+    if (updateClauses.length > 0) {
+      params.push(item.id);
+      db.run(`UPDATE teachers SET ${updateClauses.join(', ')} WHERE id = ?`, params);
+      updatedCount++;
+    }
+  }
+
+  if (updatedCount > 0) {
+    saveDatabase(db);
+    await addAuditLog({
+      action: 'UPDATE_STATUS',
+      entityType: 'TEACHER',
+      entityId: 'bulk_update',
+      userName,
+      details: `Actualización masiva de datos/correos en ${updatedCount} docentes.`
+    });
+  }
+
+  return updatedCount;
+}
+
 

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { Mail, CheckCircle, AlertTriangle, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { ReplacementHub } from './components/ReplacementHub';
 import { DailyBoard } from './components/DailyBoard';
@@ -36,13 +37,15 @@ import {
   syncTeachersToApi,
   getStoredAuthUser,
   checkAuthApi,
-  logoutApi
+  logoutApi,
+  sendReplacementEmailsApi
 } from './utils/storage';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(getStoredAuthUser);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState<boolean>(false);
+  const [emailToast, setEmailToast] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
 
   const [teachers, setTeachers] = useState<Teacher[]>(loadTeachers);
   const [absences, setAbsences] = useState<AbsenceRecord[]>(loadAbsences);
@@ -155,6 +158,30 @@ export default function App() {
     // Persist to SQLite database file
     await syncAbsenceToApi(newAbsence);
     await syncReplacementsToApi(newAssignments);
+
+    // Trigger automatic SMTP email notification to substitute teachers
+    sendReplacementEmailsApi(newAssignments)
+      .then(emailRes => {
+        if (emailRes.ok && emailRes.sentCount && emailRes.sentCount > 0) {
+          setEmailToast({
+            type: 'success',
+            message: `✉️ Se enviaron ${emailRes.sentCount} notificaciones por correo a los docentes suplentes.`
+          });
+          setTimeout(() => setEmailToast(null), 8000);
+        } else if (emailRes.ok && emailRes.skippedCount && emailRes.skippedCount > 0 && emailRes.results) {
+          const noEmailDocentes = emailRes.results.filter(r => !r.success);
+          if (noEmailDocentes.length > 0 && !emailRes.reason) {
+            setEmailToast({
+              type: 'info',
+              message: `ℹ️ ${noEmailDocentes.length} docente(s) suplente(s) no tienen correo registrado en el Directorio.`
+            });
+            setTimeout(() => setEmailToast(null), 8000);
+          }
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to dispatch notification emails:', err);
+      });
 
     // Switch to daily board to view the generated replacements
     setActiveTab('board');
@@ -276,9 +303,46 @@ export default function App() {
         )}
 
         {activeTab === 'audit' && (
-          <AuditAndBackup onDatabaseRestored={reloadAllFromDb} currentUser={currentUser} />
+          <AuditAndBackup
+            onDatabaseRestored={reloadAllFromDb}
+            currentUser={currentUser}
+            teachers={teachers}
+            onUpdateTeachers={handleUpdateTeachers}
+          />
         )}
       </main>
+
+      {/* Floating Toast Notification for Emails & Dispatches */}
+      {emailToast && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div
+            className={`p-3.5 rounded-xl shadow-lg border flex items-center justify-between gap-3 text-xs ${
+              emailToast.type === 'success'
+                ? 'bg-emerald-900 text-white border-emerald-700 shadow-emerald-950/20'
+                : emailToast.type === 'error'
+                ? 'bg-red-900 text-white border-red-700 shadow-red-950/20'
+                : 'bg-blue-900 text-white border-blue-700 shadow-blue-950/20'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {emailToast.type === 'success' ? (
+                <CheckCircle className="w-4 h-4 text-emerald-300 shrink-0" />
+              ) : emailToast.type === 'error' ? (
+                <AlertTriangle className="w-4 h-4 text-red-300 shrink-0" />
+              ) : (
+                <Mail className="w-4 h-4 text-blue-300 shrink-0" />
+              )}
+              <span className="font-medium leading-relaxed">{emailToast.message}</span>
+            </div>
+            <button
+              onClick={() => setEmailToast(null)}
+              className="text-white/70 hover:text-white p-1 cursor-pointer transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Printable Replacement Slip Modal */}
       {slipModalAssignment && (

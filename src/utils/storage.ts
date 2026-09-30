@@ -1,4 +1,15 @@
-import { Teacher, AbsenceRecord, ReplacementAssignment, AuditLogEntry, BackupPoint, AppUser, UserRole, ScheduleVersionInfo } from '../types';
+import {
+  Teacher,
+  AbsenceRecord,
+  ReplacementAssignment,
+  AuditLogEntry,
+  BackupPoint,
+  AppUser,
+  UserRole,
+  ScheduleVersionInfo,
+  SmtpConfig,
+  EmailNotificationResult
+} from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
 
 const STORAGE_KEYS = {
@@ -523,6 +534,148 @@ export async function deleteUserApi(userId: string): Promise<{ ok: boolean; erro
       return { ok: true };
     }
     return { ok: false, error: data.error || 'Error al eliminar usuario' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+// ----------------- SMTP Settings & Notifications API -----------------
+
+export async function fetchSmtpConfigApi(): Promise<SmtpConfig | null> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/smtp/config', {
+      headers: { Authorization: `Bearer ${token || ''}` }
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error('Failed to fetch SMTP config', err);
+  }
+  return null;
+}
+
+export async function saveSmtpConfigApi(config: SmtpConfig): Promise<{ ok: boolean; message?: string; error?: string }> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/smtp/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify(config)
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return { ok: true, message: data.message };
+    }
+    return { ok: false, error: data.error || 'Error al guardar la configuración SMTP' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function testSmtpConnectionApi(targetEmail: string): Promise<{ ok: boolean; message?: string; error?: string }> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/smtp/test', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify({ targetEmail })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return { ok: true, message: data.message };
+    }
+    return { ok: false, error: data.error || 'Fallo en la prueba del servidor SMTP' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function updateTeacherEmailApi(
+  teacherId: string,
+  email: string
+): Promise<{ ok: boolean; error?: string }> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch(`/api/teachers/${teacherId}/email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return { ok: true };
+    }
+    return { ok: false, error: data.error || 'Error al actualizar el correo del docente' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function updateTeachersBulkApi(
+  updates: Array<{ id: string; email?: string; phone?: string; department?: string; section?: string }>
+): Promise<{ ok: boolean; count?: number; error?: string }> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/teachers/bulk-update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify({ updates })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return { ok: true, count: data.count };
+    }
+    return { ok: false, error: data.error || 'Error al actualizar docentes' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function sendReplacementEmailsApi(
+  replacements: ReplacementAssignment[]
+): Promise<{
+  ok: boolean;
+  sentCount?: number;
+  skippedCount?: number;
+  reason?: string;
+  results?: EmailNotificationResult[];
+  error?: string;
+}> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/notifications/send-replacements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify({ replacements })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return {
+        ok: true,
+        sentCount: data.sentCount,
+        skippedCount: data.skippedCount,
+        reason: data.reason,
+        results: data.results
+      };
+    }
+    return { ok: false, error: data.error || 'Error al enviar notificaciones por correo' };
   } catch (err: any) {
     return { ok: false, error: err.message };
   }

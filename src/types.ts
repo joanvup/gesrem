@@ -165,4 +165,24 @@ export interface ScheduleVersionInfo {
   academicYear?: string;
 }
 
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  fromName: string;
+  fromEmail: string;
+  enabled: boolean;
+}
+
+export interface EmailNotificationResult {
+  recipient: string;
+  teacherName: string;
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+
+
 

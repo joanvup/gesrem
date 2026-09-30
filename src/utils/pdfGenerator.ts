@@ -287,7 +287,7 @@ export function generateSummaryPdf({
 
   const cleanDate = date.replace(/[^0-9-]/g, '_');
   const cleanSection = selectedSection === 'all' ? 'General' : selectedSection;
-  doc.save(`Planilla_FCBV_${cleanSection}_${cleanDate}.pdf`);
+  doc.save(`Planilla_Remplazos_FCBV_${cleanSection}_${cleanDate}.pdf`);
 }
 
 export interface GenerateSlipPdfParams {

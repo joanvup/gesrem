@@ -12,7 +12,8 @@ import {
   Zap,
   Printer,
   Share2,
-  Users
+  Users,
+  Mail
 } from 'lucide-react';
 import {
   Teacher,
@@ -744,6 +745,12 @@ export const ReplacementHub: React.FC<ReplacementHubProps> = ({
                             <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded">
                               {cand.score}% compatibilidad
                             </span>
+                            {cand.teacher.email ? (
+                              <span className="text-[10px] text-blue-700 dark:text-blue-300 font-mono flex items-center gap-1 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded border border-blue-200 dark:border-blue-900">
+                                <Mail className="w-3 h-3" />
+                                <span>Email listo</span>
+                              </span>
+                            ) : null}
                           </div>
 
                           <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-neutral-500 dark:text-neutral-400">

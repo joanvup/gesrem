@@ -2,10 +2,13 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 import {
   getDatabase,
   getAllTeachersFromDb,
   setAllTeachersInDb,
+  updateTeacherEmailInDb,
+  updateTeachersBulkInDb,
   getAllAbsencesFromDb,
   addAbsenceToDb,
   getAllReplacementsFromDb,
@@ -26,9 +29,11 @@ import {
   createUserInDb,
   updateUserPasswordInDb,
   deleteUserInDb,
-  verifyPassword
+  verifyPassword,
+  getSmtpConfigFromDb,
+  saveSmtpConfigInDb
 } from './src/db/sqlite';
-import { AppUser } from './src/types';
+import { AppUser, SmtpConfig, EmailNotificationResult, ReplacementAssignment } from './src/types';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -513,6 +518,420 @@ app.post('/api/backup/restore-upload', async (req, res) => {
     await restoreFromSqliteBuffer(buffer, userName, filename || 'Archivo subido por usuario');
     res.json({ ok: true, message: 'Base de datos restaurada correctamente' });
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ----------------- Teacher Email Management Endpoints -----------------
+
+// Update a single teacher's email address
+app.post('/api/teachers/:id/email', async (req, res) => {
+  try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const { email } = req.body;
+    if (typeof email !== 'string') {
+      return res.status(400).json({ error: 'El campo de correo electrónico es inválido' });
+    }
+
+    const userName = `${admin.name} (${admin.username})`;
+    const ok = await updateTeacherEmailInDb(req.params.id, email, userName);
+    if (!ok) {
+      return res.status(404).json({ error: 'Docente no encontrado' });
+    }
+
+    res.json({ ok: true, message: 'Correo actualizado exitosamente' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk update teachers data (emails, phones, etc.)
+app.post('/api/teachers/bulk-update', async (req, res) => {
+  try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const { updates } = req.body;
+    if (!Array.isArray(updates)) {
+      return res.status(400).json({ error: 'Se esperaba un arreglo de actualizaciones' });
+    }
+
+    const userName = `${admin.name} (${admin.username})`;
+    const updatedCount = await updateTeachersBulkInDb(updates, userName);
+    res.json({ ok: true, count: updatedCount });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ----------------- SMTP Settings & Mail Notification Service -----------------
+
+function createMailTransporter(config: SmtpConfig) {
+  return nodemailer.createTransport({
+    host: config.host || 'smtp.gmail.com',
+    port: Number(config.port) || 587,
+    secure: config.secure === true || Number(config.port) === 465,
+    auth: {
+      user: config.user,
+      pass: config.pass
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+}
+
+function generateReplacementEmailHtml(params: {
+  substituteTeacherName: string;
+  absentTeacherName: string;
+  date: string;
+  dayOfWeek: string;
+  period: number;
+  timeRange: string;
+  subject: string;
+  grade: string;
+  section?: string;
+  activityPlan?: string;
+}): string {
+  const dayNameEs =
+    params.dayOfWeek === 'Monday'
+      ? 'Lunes'
+      : params.dayOfWeek === 'Tuesday'
+      ? 'Martes'
+      : params.dayOfWeek === 'Wednesday'
+      ? 'Miércoles'
+      : params.dayOfWeek === 'Thursday'
+      ? 'Jueves'
+      : params.dayOfWeek === 'Friday'
+      ? 'Viernes'
+      : params.dayOfWeek;
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asignación de Reemplazo Docente</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+    <!-- Top Brand Header -->
+    <tr>
+      <td style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); padding: 26px 24px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #fbbf24; margin-bottom: 4px;">
+          COORDINACIÓN ACADÉMICA
+        </div>
+        <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">
+          Fundación Colegio Bilingüe de Valledupar
+        </h1>
+        <p style="color: #bfdbfe; margin: 6px 0 0 0; font-size: 12px;">
+          Sistema Institucional de Gestión de Reemplazos Docentes
+        </p>
+      </td>
+    </tr>
+
+    <!-- Main Message Body -->
+    <tr>
+      <td style="padding: 26px 24px;">
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; padding: 14px 16px; border-radius: 6px; margin-bottom: 22px;">
+          <h2 style="margin: 0; font-size: 14px; color: #166534; font-weight: 700;">
+            🔔 Notificación de Cobertura de Clase
+          </h2>
+          <p style="margin: 4px 0 0 0; font-size: 13px; color: #15803d; line-height: 1.4;">
+            Estimado(a) <strong>${params.substituteTeacherName}</strong>, se le ha asignado una cobertura de suplencia en su horario disponible.
+          </p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 10px 0;">
+            Detalles de la Asignación
+          </h3>
+          <table width="100%" cellpadding="10" cellspacing="0" style="font-size: 13px; border-collapse: separate; border-spacing: 0; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="color: #64748b; font-weight: 600; width: 38%; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">📅 Fecha y Día:</td>
+              <td style="color: #0f172a; font-weight: 700; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">${dayNameEs}, ${params.date}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="color: #64748b; font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">⏰ Periodo y Horario:</td>
+              <td style="color: #1e40af; font-weight: 800; font-size: 14px; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">Periodo ${params.period} <span style="font-size: 12px; font-weight: 600; color: #475569;">(${params.timeRange})</span></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="color: #64748b; font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">📚 Asignatura:</td>
+              <td style="color: #0f172a; font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">${params.subject}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="color: #64748b; font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">🏫 Grado / Sección:</td>
+              <td style="color: #0f172a; font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">${params.grade} ${params.section ? `<span style="font-size: 11px; background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${params.section}</span>` : ''}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b; font-weight: 600; padding: 10px 14px;">👤 Docente Titular:</td>
+              <td style="color: #b91c1c; font-weight: 700; padding: 10px 14px;">${params.absentTeacherName}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Activity Plan / Notes -->
+        <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 16px; margin-bottom: 22px;">
+          <div style="font-size: 11px; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;">
+            📝 Plan de Trabajo / Indicaciones para la Clase:
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #78350f; line-height: 1.5; white-space: pre-wrap;">
+            ${params.activityPlan || 'Desarrollar el contenido programático de la sesión, supervisar el trabajo individual o grupal y registrar asistencia en el libro de clases.'}
+          </p>
+        </div>
+
+        <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5; text-align: center; background-color: #f8fafc; padding: 12px; border-radius: 8px;">
+          🏫 <em>Por favor presentarse puntualmente en el aula de clases 5 minutos antes del inicio de la sesión.</em>
+        </p>
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="background-color: #f8fafc; padding: 18px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
+        <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 600;">
+          Fundación Colegio Bilingüe de Valledupar
+        </p>
+        <p style="margin: 4px 0 0 0; font-size: 10px; color: #94a3b8;">
+          Mensaje generado automáticamente por el Sistema de Reemplazos Docentes.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+// GET /api/smtp/config (Admin only)
+app.get('/api/smtp/config', async (req, res) => {
+  try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const config = await getSmtpConfigFromDb();
+    // Mask password partially for security on display
+    const maskedConfig = {
+      ...config,
+      passMasked: config.pass ? '••••••••••••' : ''
+    };
+    res.json(maskedConfig);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/smtp/config (Admin only)
+app.post('/api/smtp/config', async (req, res) => {
+  try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const existingConfig = await getSmtpConfigFromDb();
+    const { host, port, secure, user, pass, fromName, fromEmail, enabled } = req.body;
+
+    const finalPass = (pass && pass.trim() !== '' && pass !== '••••••••••••')
+      ? pass.trim()
+      : existingConfig.pass;
+
+    const newConfig: SmtpConfig = {
+      host: (host || 'smtp.gmail.com').trim(),
+      port: Number(port) || 587,
+      secure: Boolean(secure),
+      user: (user || '').trim(),
+      pass: finalPass,
+      fromName: (fromName || 'Fundación Colegio Bilingüe de Valledupar').trim(),
+      fromEmail: (fromEmail || user || '').trim(),
+      enabled: Boolean(enabled)
+    };
+
+    const userName = `${admin.name} (${admin.username})`;
+    await saveSmtpConfigInDb(newConfig, userName);
+
+    res.json({ ok: true, message: 'Configuración SMTP guardada correctamente' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/smtp/test (Admin only - verify connection & send test email)
+app.post('/api/smtp/test', async (req, res) => {
+  try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const { targetEmail } = req.body;
+    if (!targetEmail || !targetEmail.includes('@')) {
+      return res.status(400).json({ error: 'Debes proporcionar un correo electrónico válido para la prueba.' });
+    }
+
+    const config = await getSmtpConfigFromDb();
+    if (!config.user || !config.pass) {
+      return res.status(400).json({
+        error: 'Faltan credenciales SMTP. Por favor ingresa el usuario (correo) y la contraseña de aplicación antes de probar.'
+      });
+    }
+
+    const transporter = createMailTransporter(config);
+
+    // Verify SMTP connection
+    await transporter.verify();
+
+    // Send test email
+    const sender = config.fromEmail || config.user;
+    const fromHeader = `"${config.fromName || 'Fundación Colegio Bilingüe'}" <${sender}>`;
+
+    const info = await transporter.sendMail({
+      from: fromHeader,
+      to: targetEmail.trim(),
+      subject: '✅ Prueba de Conexión SMTP - Fundación Colegio Bilingüe',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff;">
+          <h2 style="color: #1e3a8a; margin-top: 0;">Prueba de Servidor SMTP Exitosa 🎉</h2>
+          <p style="color: #334155; font-size: 14px; line-height: 1.5;">
+            Este mensaje confirma que el servidor de correo <strong>${config.host}</strong> (${config.port}) está correctamente configurado y listo para enviar notificaciones de reemplazos docentes.
+          </p>
+          <div style="background: #f8fafc; padding: 12px; border-radius: 6px; font-size: 12px; color: #64748b; margin-top: 15px;">
+            <strong>Remitente:</strong> ${sender}<br>
+            <strong>Destinatario de prueba:</strong> ${targetEmail.trim()}<br>
+            <strong>Fecha/Hora:</strong> ${new Date().toLocaleString('es-CO')}
+          </div>
+        </div>
+      `
+    });
+
+    res.json({
+      ok: true,
+      message: `Correo de prueba enviado con éxito a ${targetEmail.trim()}. Message ID: ${info.messageId}`
+    });
+  } catch (error: any) {
+    console.error('SMTP test error:', error);
+    res.status(500).json({
+      error: `Error al conectar o enviar con el servidor SMTP: ${error.message}`
+    });
+  }
+});
+
+// POST /api/notifications/send-replacements (Send emails to substitute teachers)
+app.post('/api/notifications/send-replacements', async (req, res) => {
+  try {
+    const { replacements } = req.body as { replacements: ReplacementAssignment[] };
+    if (!Array.isArray(replacements) || replacements.length === 0) {
+      return res.status(400).json({ error: 'No se recibieron reemplazos para notificar' });
+    }
+
+    const config = await getSmtpConfigFromDb();
+    if (!config.enabled || !config.user || !config.pass) {
+      return res.json({
+        ok: true,
+        sentCount: 0,
+        skippedCount: replacements.length,
+        reason: 'El servicio SMTP no está habilitado o configurado en el sistema.',
+        results: []
+      });
+    }
+
+    const allTeachers = await getAllTeachersFromDb();
+    const teachersMap = new Map(allTeachers.map(t => [t.id, t]));
+
+    const transporter = createMailTransporter(config);
+    const sender = config.fromEmail || config.user;
+    const fromHeader = `"${config.fromName || 'Fundación Colegio Bilingüe'}" <${sender}>`;
+
+    const results: EmailNotificationResult[] = [];
+    let sentCount = 0;
+    let skippedCount = 0;
+
+    for (const r of replacements) {
+      const substitute = teachersMap.get(r.substituteTeacherId);
+      const targetEmail = substitute?.email?.trim();
+
+      if (!targetEmail || !targetEmail.includes('@')) {
+        skippedCount++;
+        results.push({
+          recipient: targetEmail || '(sin correo)',
+          teacherName: r.substituteTeacherName,
+          success: false,
+          error: 'El docente suplente no tiene correo electrónico asignado en el sistema.'
+        });
+        continue;
+      }
+
+      try {
+        const emailHtml = generateReplacementEmailHtml({
+          substituteTeacherName: r.substituteTeacherName,
+          absentTeacherName: r.absentTeacherName,
+          date: r.date,
+          dayOfWeek: r.dayOfWeek,
+          period: r.period,
+          timeRange: r.timeRange,
+          subject: r.subject,
+          grade: r.grade,
+          section: r.section,
+          activityPlan: r.activityPlan
+        });
+
+        const dayNameEs =
+          r.dayOfWeek === 'Monday'
+            ? 'Lunes'
+            : r.dayOfWeek === 'Tuesday'
+            ? 'Martes'
+            : r.dayOfWeek === 'Wednesday'
+            ? 'Miércoles'
+            : r.dayOfWeek === 'Thursday'
+            ? 'Jueves'
+            : r.dayOfWeek === 'Friday'
+            ? 'Viernes'
+            : r.dayOfWeek;
+
+        const mailRes = await transporter.sendMail({
+          from: fromHeader,
+          to: targetEmail,
+          subject: `🔔 Reemplazo Docente: ${r.subject} (${r.grade}) - Periodo ${r.period} [${dayNameEs} ${r.date}]`,
+          html: emailHtml
+        });
+
+        sentCount++;
+        results.push({
+          recipient: targetEmail,
+          teacherName: r.substituteTeacherName,
+          success: true,
+          messageId: mailRes.messageId
+        });
+      } catch (mailErr: any) {
+        console.error(`Failed to send email to ${targetEmail}:`, mailErr);
+        results.push({
+          recipient: targetEmail,
+          teacherName: r.substituteTeacherName,
+          success: false,
+          error: mailErr.message
+        });
+      }
+    }
+
+    const activeUser = getRequestUser(req);
+    const userName = activeUser ? `${activeUser.name} (${activeUser.username})` : 'Coordinación Académica';
+    if (sentCount > 0) {
+      await addAuditLog({
+        action: 'UPDATE_STATUS',
+        entityType: 'REPLACEMENT',
+        entityId: 'notifications',
+        userName,
+        details: `Enviadas ${sentCount} notificaciones por correo electrónico a docentes suplentes.`
+      });
+    }
+
+    res.json({
+      ok: true,
+      sentCount,
+      skippedCount,
+      results
+    });
+  } catch (error: any) {
+    console.error('Error sending replacement notifications:', error);
     res.status(500).json({ error: error.message });
   }
 });
