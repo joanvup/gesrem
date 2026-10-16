@@ -78,7 +78,7 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
 
       // Step 2: Spatial & Text PDF Grid Analysis
       setProcessingStep('Paso 2/3: Analizando docentes y cuadrículas de horario desde aSc Timetables...');
-      const result = await parsePdfSchedule(file);
+      const result = await parsePdfSchedule(file, teachers);
 
       // Step 3: Synchronize with SQLite Database and App state
       setProcessingStep('Paso 3/3: Guardando nuevos docentes y horarios en la base de datos...');
@@ -102,8 +102,10 @@ export const PdfLoader: React.FC<PdfLoaderProps> = ({
 
       onUpdateScheduleVersion(newVersionInfo);
 
+      const preservedEmailsCount = result.teachers.filter(t => t.email && t.email.trim().length > 0).length;
+
       setSuccessInfo({
-        message: `¡Horario y nómina docente actualizados con éxito desde "${file.name}"!`,
+        message: `¡Horario y nómina docente actualizados con éxito desde "${file.name}"! Se preservaron los correos institucionales configurados (${preservedEmailsCount} docentes con correo activo).`,
         backupName: backupFilename,
         teachersCount: result.teachers.length,
         slotsCount: result.totalSlotsExtracted

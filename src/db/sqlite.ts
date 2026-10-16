@@ -362,15 +362,44 @@ export async function getAllTeachersFromDb(): Promise<Teacher[]> {
   return Object.values(teachersMap);
 }
 
+function normalizeTeacherName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 export async function setAllTeachersInDb(teachers: Teacher[], userName = 'Coordinación Académica'): Promise<void> {
   const db = await getDatabase();
+  
+  // 1. Preserve existing teacher emails and phones so PDF updates never erase configurations
+  const existingTeachers = await getAllTeachersFromDb();
+  const existingMap = new Map<string, { email: string; phone: string }>();
+  for (const et of existingTeachers) {
+    if ((et.email && et.email.trim().length > 0) || (et.phone && et.phone.trim().length > 0)) {
+      const data = { email: et.email?.trim() || '', phone: et.phone?.trim() || '' };
+      existingMap.set(et.id, data);
+      const norm = normalizeTeacherName(et.name);
+      if (norm) {
+        existingMap.set(norm, data);
+      }
+    }
+  }
+
+  // 2. Clear previous slots and teachers table
   db.run('DELETE FROM schedule_slots');
   db.run('DELETE FROM teachers');
 
+  // 3. Insert new teachers with preserved email and phone
   for (const t of teachers) {
+    const existing = existingMap.get(t.id) || existingMap.get(normalizeTeacherName(t.name));
+    const finalEmail = (t.email && t.email.trim().length > 0) ? t.email.trim() : (existing?.email || '');
+    const finalPhone = (t.phone && t.phone.trim().length > 0) ? t.phone.trim() : (existing?.phone || '');
+
     db.run(
       'INSERT INTO teachers (id, name, department, section, phone, email, grades_taught) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [t.id, t.name, t.department, t.section, t.phone || '', t.email || '', JSON.stringify(t.gradesTaught || [])]
+      [t.id, t.name, t.department, t.section, finalPhone, finalEmail, JSON.stringify(t.gradesTaught || [])]
     );
 
     for (const s of t.slots) {
@@ -387,7 +416,7 @@ export async function setAllTeachersInDb(teachers: Teacher[], userName = 'Coordi
     entityType: 'TEACHER',
     entityId: 'all_teachers',
     userName,
-    details: `Actualizada la base de datos de docentes con ${teachers.length} profesores y sus mallas horarias.`
+    details: `Actualizada la base de datos de docentes con ${teachers.length} profesores y sus mallas horarias (correos y teléfonos preservados).`
   });
 }
 

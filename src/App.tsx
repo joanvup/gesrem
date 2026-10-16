@@ -255,8 +255,20 @@ export default function App() {
   };
 
   const handleUpdateTeachers = async (newTeachers: Teacher[]) => {
-    setTeachers(newTeachers);
-    await syncTeachersToApi(newTeachers);
+    // Merge and preserve existing emails and contact info from existing state
+    const mergedTeachers = newTeachers.map(newT => {
+      const existing = teachers.find(
+        t => t.id === newT.id ||
+             t.name.trim().toLowerCase() === newT.name.trim().toLowerCase()
+      );
+      return {
+        ...newT,
+        email: (newT.email && newT.email.trim().length > 0) ? newT.email.trim() : (existing?.email || ''),
+        phone: (newT.phone && newT.phone.trim().length > 0) ? newT.phone.trim() : (existing?.phone || '')
+      };
+    });
+    setTeachers(mergedTeachers);
+    await syncTeachersToApi(mergedTeachers);
   };
 
   // Find absent and substitute teachers for the slip modal
