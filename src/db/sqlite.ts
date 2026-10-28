@@ -11,9 +11,12 @@ import {
   BackupPoint,
   AppUser,
   UserRole,
-  SmtpConfig
+  SmtpConfig,
+  MigrationStatus
 } from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
+import { generateTeacherEmail } from '../utils/emailHelper';
+import { getMigrationStatus, runPendingMigrations } from './migrations';
 
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -70,6 +73,14 @@ export async function getDatabase(): Promise<Database> {
 
   dbInstance = db;
   initTables(db);
+
+  try {
+    // Non-destructive automatic migration check on database startup
+    await runPendingMigrations(db, 'auto', saveDatabase);
+  } catch (migErr) {
+    console.error('[SQLite] Automatic schema migration warning:', migErr);
+  }
+
   saveDatabase(db);
   return db;
 }
@@ -222,6 +233,24 @@ function initTables(db: Database): void {
   const count = countResult[0]?.values[0]?.[0] as number;
   if (!count || count === 0) {
     seedInitialData(db);
+  } else {
+    // Automatically assign institutional emails to teachers without email or with legacy domain
+    try {
+      const teachersWithoutEmail = db.exec(
+        "SELECT id, name, email FROM teachers WHERE email IS NULL OR email = '' OR email LIKE '%@fcbv.edu.co'"
+      );
+      if (teachersWithoutEmail && teachersWithoutEmail.length > 0 && teachersWithoutEmail[0].values.length > 0) {
+        for (const row of teachersWithoutEmail[0].values) {
+          const tId = row[0] as string;
+          const tName = row[1] as string;
+          const autoEmail = generateTeacherEmail(tName);
+          db.run('UPDATE teachers SET email = ? WHERE id = ?', [autoEmail, tId]);
+        }
+        saveDatabase(db);
+      }
+    } catch (e) {
+      console.warn('Could not auto-backfill teacher emails', e);
+    }
   }
 }
 
@@ -230,9 +259,10 @@ export function seedInitialData(db: Database): void {
   db.run('DELETE FROM teachers');
 
   for (const t of INITIAL_TEACHERS) {
+    const finalEmail = (t.email && t.email.trim().length > 0) ? t.email.trim() : generateTeacherEmail(t.name);
     db.run(
       'INSERT INTO teachers (id, name, department, section, phone, email, grades_taught) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [t.id, t.name, t.department, t.section, t.phone || '', t.email || '', JSON.stringify(t.gradesTaught)]
+      [t.id, t.name, t.department, t.section, t.phone || '', finalEmail, JSON.stringify(t.gradesTaught)]
     );
 
     for (const s of t.slots) {
@@ -394,7 +424,10 @@ export async function setAllTeachersInDb(teachers: Teacher[], userName = 'Coordi
   // 3. Insert new teachers with preserved email and phone
   for (const t of teachers) {
     const existing = existingMap.get(t.id) || existingMap.get(normalizeTeacherName(t.name));
-    const finalEmail = (t.email && t.email.trim().length > 0) ? t.email.trim() : (existing?.email || '');
+    let finalEmail = (t.email && t.email.trim().length > 0) ? t.email.trim() : (existing?.email || '');
+    if (!finalEmail || finalEmail.length === 0) {
+      finalEmail = generateTeacherEmail(t.name);
+    }
     const finalPhone = (t.phone && t.phone.trim().length > 0) ? t.phone.trim() : (existing?.phone || '');
 
     db.run(
@@ -1040,4 +1073,54 @@ export async function updateTeachersBulkInDb(
   return updatedCount;
 }
 
+export async function autoAssignAllTeacherEmailsInDb(
+  userName = 'Coordinación Académica',
+  forceAll = false
+): Promise<{ updatedCount: number; updatedTeachers: Array<{ id: string; name: string; email: string }> }> {
+  const db = await getDatabase();
+  const res = forceAll
+    ? db.exec('SELECT id, name, email FROM teachers ORDER BY name ASC')
+    : db.exec("SELECT id, name, email FROM teachers WHERE email IS NULL OR email = '' OR email NOT LIKE '%@colegiobilingue.edu.co' ORDER BY name ASC");
+
+  if (!res || res.length === 0 || !res[0].values) {
+    return { updatedCount: 0, updatedTeachers: [] };
+  }
+
+  const updatedTeachers: Array<{ id: string; name: string; email: string }> = [];
+
+  for (const row of res[0].values) {
+    const id = row[0] as string;
+    const name = row[1] as string;
+    const oldEmail = (row[2] as string) || '';
+    const newEmail = generateTeacherEmail(name);
+
+    if (forceAll || oldEmail !== newEmail) {
+      db.run('UPDATE teachers SET email = ? WHERE id = ?', [newEmail, id]);
+      updatedTeachers.push({ id, name, email: newEmail });
+    }
+  }
+
+  if (updatedTeachers.length > 0) {
+    saveDatabase(db);
+    await addAuditLog({
+      action: 'UPDATE_STATUS',
+      entityType: 'TEACHER',
+      entityId: 'auto_assign_emails',
+      userName,
+      details: `Asignación automática de correos (@colegiobilingue.edu.co) para ${updatedTeachers.length} docentes: primera inicial del nombre más el apellido.`
+    });
+  }
+
+  return { updatedCount: updatedTeachers.length, updatedTeachers };
+}
+
+export async function getDatabaseMigrationStatus(): Promise<MigrationStatus> {
+  const db = await getDatabase();
+  return getMigrationStatus(db);
+}
+
+export async function runDatabaseMigrations(trigger: 'auto' | 'manual' = 'manual') {
+  const db = await getDatabase();
+  return await runPendingMigrations(db, trigger, saveDatabase);
+}
 

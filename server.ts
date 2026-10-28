@@ -9,6 +9,7 @@ import {
   setAllTeachersInDb,
   updateTeacherEmailInDb,
   updateTeachersBulkInDb,
+  autoAssignAllTeacherEmailsInDb,
   getAllAbsencesFromDb,
   addAbsenceToDb,
   getAllReplacementsFromDb,
@@ -31,7 +32,9 @@ import {
   deleteUserInDb,
   verifyPassword,
   getSmtpConfigFromDb,
-  saveSmtpConfigInDb
+  saveSmtpConfigInDb,
+  getDatabaseMigrationStatus,
+  runDatabaseMigrations
 } from './src/db/sqlite';
 import { AppUser, SmtpConfig, EmailNotificationResult, ReplacementAssignment } from './src/types';
 
@@ -522,6 +525,54 @@ app.post('/api/backup/restore-upload', async (req, res) => {
   }
 });
 
+// ----------------- Database Migrations & Schema Health -----------------
+
+// GET /api/migrations/status
+app.get('/api/migrations/status', async (req, res) => {
+  try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const status = await getDatabaseMigrationStatus();
+    res.json({ ok: true, status });
+  } catch (error: any) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// POST /api/migrations/run (Admin only - runs pending non-destructive schema migrations)
+app.post('/api/migrations/run', async (req, res) => {
+  try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const userName = `${admin.name} (${admin.username})`;
+    const result = await runDatabaseMigrations('manual');
+
+    if (result.appliedCount > 0) {
+      await addAuditLog({
+        action: 'UPDATE_STATUS',
+        entityType: 'DATABASE',
+        entityId: 'schema_migrations',
+        userName,
+        details: `Ejecución manual de migración de esquema SQLite: ${result.appliedCount} versiones aplicadas (versiones: ${result.appliedVersions.join(', ')}). Respaldo preventivo: ${result.backupFile || 'N/A'}.`
+      });
+    }
+
+    res.json({
+      ok: true,
+      appliedCount: result.appliedCount,
+      appliedVersions: result.appliedVersions,
+      backupFile: result.backupFile,
+      status: result.status,
+      message: result.message
+    });
+  } catch (error: any) {
+    console.error('Error running manual database migrations:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 // ----------------- Teacher Email Management Endpoints -----------------
 
 // Update a single teacher's email address
@@ -561,6 +612,28 @@ app.post('/api/teachers/bulk-update', async (req, res) => {
     const userName = `${admin.name} (${admin.username})`;
     const updatedCount = await updateTeachersBulkInDb(updates, userName);
     res.json({ ok: true, count: updatedCount });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Auto-assign institutional emails for teachers (@colegiobilingue.edu.co: initial + lastname)
+app.post('/api/teachers/auto-assign-emails', async (req, res) => {
+  try {
+    const admin = requireAdmin(req, res);
+    if (!admin) return;
+
+    const forceAll = req.body?.forceAll === true;
+    const userName = `${admin.name} (${admin.username})`;
+    const result = await autoAssignAllTeacherEmailsInDb(userName, forceAll);
+    const allTeachers = await getAllTeachersFromDb();
+
+    res.json({
+      ok: true,
+      updatedCount: result.updatedCount,
+      updatedTeachers: result.updatedTeachers,
+      totalTeachers: allTeachers.length
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

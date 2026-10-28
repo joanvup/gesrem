@@ -2,6 +2,7 @@
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { Teacher, ScheduleSlot, DayOfWeek, PERIODS_CONFIG, getGradeSection } from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
+import { generateTeacherEmail } from './emailHelper';
 
 // Ensure Promise.try compatibility across all runtime environments
 if (typeof (Promise as any).try !== 'function') {
@@ -419,9 +420,11 @@ export async function parsePdfSchedule(
         section: matchedTeacher?.section || section,
         gradesTaught: gradesTaught.length > 0 ? gradesTaught : (matchedTeacher?.gradesTaught || []),
         slots: finalSlots,
-        // Crucial: preserve existing email and phone configured for this teacher!
+        // Crucial: preserve existing email/phone, or automatically assign institutional email (firstInitial + lastName@colegiobilingue.edu.co)
         phone: matchedTeacher?.phone || '',
-        email: matchedTeacher?.email || ''
+        email: (matchedTeacher?.email && matchedTeacher.email.trim().length > 0)
+          ? matchedTeacher.email.trim()
+          : generateTeacherEmail(teacherName)
       };
 
       // Avoid duplicate teacher IDs in same PDF

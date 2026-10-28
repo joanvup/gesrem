@@ -184,5 +184,24 @@ export interface EmailNotificationResult {
   error?: string;
 }
 
+export interface AppliedMigration {
+  id: number;
+  version: number;
+  name: string;
+  description: string;
+  appliedAt: string;
+}
+
+export interface MigrationStatus {
+  currentVersion: number;
+  latestAvailableVersion: number;
+  isUpToDate: boolean;
+  appliedMigrations: AppliedMigration[];
+  pendingMigrations: Array<{ version: number; name: string; description: string }>;
+  tableCounts: Record<string, number>;
+  databaseSizeBytes: number;
+  lastChecked: string;
+}
+
 
 

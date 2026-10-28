@@ -8,7 +8,8 @@ import {
   UserRole,
   ScheduleVersionInfo,
   SmtpConfig,
-  EmailNotificationResult
+  EmailNotificationResult,
+  MigrationStatus
 } from '../types';
 import { INITIAL_TEACHERS } from '../data/defaultSchedule';
 
@@ -357,6 +358,61 @@ export async function downloadSqliteBackup(specificFilename?: string): Promise<{
   }
 }
 
+// ----------------- Database Migrations & Schema Health -----------------
+
+export async function fetchMigrationStatusApi(): Promise<MigrationStatus | null> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/migrations/status', {
+      headers: { Authorization: `Bearer ${token || ''}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok && data.status) {
+        return data.status as MigrationStatus;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch migration status:', err);
+  }
+  return null;
+}
+
+export async function runDatabaseMigrationsApi(): Promise<{
+  ok: boolean;
+  appliedCount?: number;
+  appliedVersions?: number[];
+  backupFile?: string | null;
+  status?: MigrationStatus;
+  message?: string;
+  error?: string;
+}> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/migrations/run', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      }
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return {
+        ok: true,
+        appliedCount: data.appliedCount,
+        appliedVersions: data.appliedVersions,
+        backupFile: data.backupFile,
+        status: data.status,
+        message: data.message
+      };
+    }
+    return { ok: false, error: data.error || 'Error al ejecutar las migraciones de base de datos' };
+  } catch (err: any) {
+    return { ok: false, error: err.message || 'Error de conexión con el servidor' };
+  }
+}
+
 // ----------------- Authentication Helpers -----------------
 
 export function getStoredAuthToken(): string | null {
@@ -640,6 +696,40 @@ export async function updateTeachersBulkApi(
       return { ok: true, count: data.count };
     }
     return { ok: false, error: data.error || 'Error al actualizar docentes' };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function autoAssignTeacherEmailsApi(
+  forceAll = false
+): Promise<{
+  ok: boolean;
+  count?: number;
+  updatedTeachers?: Array<{ id: string; name: string; email: string }>;
+  totalTeachers?: number;
+  error?: string;
+}> {
+  const token = getStoredAuthToken();
+  try {
+    const res = await fetch('/api/teachers/auto-assign-emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`
+      },
+      body: JSON.stringify({ forceAll })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return {
+        ok: true,
+        count: data.updatedCount,
+        updatedTeachers: data.updatedTeachers,
+        totalTeachers: data.totalTeachers
+      };
+    }
+    return { ok: false, error: data.error || 'Error al auto-asignar correos' };
   } catch (err: any) {
     return { ok: false, error: err.message };
   }

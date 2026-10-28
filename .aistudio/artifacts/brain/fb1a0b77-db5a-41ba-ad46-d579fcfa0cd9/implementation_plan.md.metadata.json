@@ -1,6 +1,6 @@
 {
-  "summary": "Plan detallado para corregir la extracción de horarios en los PDFs v1.7 y v1.9 de aSc Timetables y garantizar la preservación total de los correos electrónicos de los docentes configurados en el sistema al cargar nuevos archivos.",
-  "updatedAt": "2026-10-16T13:20:20.229803817Z",
-  "requestFeedback": true,
-  "userFacing": true
+  "summary":  "Plan de implementación para la persistencia segura de la base de datos en producción y sistema de migraciones incrementales no destructivas (automática al iniciar y manual desde la UI).",
+  "updatedAt":  "2026-10-28T12:49:22.848594070Z",
+  "requestFeedback":  true,
+  "userFacing":  true
 }

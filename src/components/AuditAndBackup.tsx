@@ -36,9 +36,12 @@ import {
   HelpCircle,
   Eye,
   EyeOff,
-  Filter
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  Server
 } from 'lucide-react';
-import { AuditLogEntry, BackupPoint, AppUser, UserRole, Teacher, SmtpConfig } from '../types';
+import { AuditLogEntry, BackupPoint, AppUser, UserRole, Teacher, SmtpConfig, MigrationStatus } from '../types';
 import {
   fetchAuditLogsApi,
   createLocalBackupApi,
@@ -46,6 +49,8 @@ import {
   restoreLocalBackupApi,
   restoreUploadBackupApi,
   downloadSqliteBackup,
+  fetchMigrationStatusApi,
+  runDatabaseMigrationsApi,
   fetchUsersApi,
   createUserApi,
   deleteUserApi,
@@ -54,9 +59,11 @@ import {
   testSmtpConnectionApi,
   updateTeacherEmailApi,
   updateTeachersBulkApi,
+  autoAssignTeacherEmailsApi,
   fetchTeachersFromApi,
   saveTeachers
 } from '../utils/storage';
+import { generateTeacherEmail } from '../utils/emailHelper';
 
 interface AuditAndBackupProps {
   onDatabaseRestored: () => Promise<void>;
@@ -86,6 +93,12 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Schema Migrations State
+  const [migrationStatus, setMigrationStatus] = useState<MigrationStatus | null>(null);
+  const [loadingMigrations, setLoadingMigrations] = useState<boolean>(false);
+  const [runningMigrations, setRunningMigrations] = useState<boolean>(false);
+  const [showAppliedDetails, setShowAppliedDetails] = useState<boolean>(false);
+
   // Users State
   const [usersList, setUsersList] = useState<AppUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
@@ -112,6 +125,7 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
   const [editedPhones, setEditedPhones] = useState<Record<string, string>>({});
   const [savingTeacherId, setSavingTeacherId] = useState<string | null>(null);
   const [bulkSaving, setBulkSaving] = useState<boolean>(false);
+  const [autoAssigning, setAutoAssigning] = useState<boolean>(false);
 
   // SMTP Settings State
   const [smtpForm, setSmtpForm] = useState<SmtpConfig>({
@@ -165,6 +179,20 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       // Handled silently
     } finally {
       setLoadingBackups(false);
+    }
+  };
+
+  // Load Migration & Schema Status (Admin only)
+  const loadMigrations = async () => {
+    if (!isAdmin) return;
+    setLoadingMigrations(true);
+    try {
+      const data = await fetchMigrationStatusApi();
+      setMigrationStatus(data);
+    } catch {
+      // Handled silently
+    } finally {
+      setLoadingMigrations(false);
     }
   };
 
@@ -247,9 +275,43 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
       loadBackups();
       loadUsers();
       loadSmtpConfig();
+      loadMigrations();
     }
     loadTeachersList();
   }, [isAdmin]);
+
+  const handleRunMigrations = async () => {
+    setRunningMigrations(true);
+    setStatusMessage(null);
+    try {
+      const res = await runDatabaseMigrationsApi();
+      if (res.ok) {
+        if (res.status) {
+          setMigrationStatus(res.status);
+        } else {
+          await loadMigrations();
+        }
+        await loadBackups();
+        await loadLogs();
+        setStatusMessage({
+          type: 'success',
+          text: res.message || 'Estructura de la base de datos verificada y actualizada exitosamente sin afectar los datos.'
+        });
+      } else {
+        setStatusMessage({
+          type: 'error',
+          text: res.error || 'No se pudo verificar ni actualizar la estructura de la base de datos.'
+        });
+      }
+    } catch (err: any) {
+      setStatusMessage({
+        type: 'error',
+        text: `Error al actualizar estructura: ${err.message}`
+      });
+    } finally {
+      setRunningMigrations(false);
+    }
+  };
 
   const handleCreateBackup = async () => {
     setActionInProgress('Creando copia de seguridad...');
@@ -550,31 +612,72 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
     }
   };
 
-  // Suggest institutional email for teacher
+  // Suggest institutional email for teacher using official pattern: firstInitial + lastName @colegiobilingue.edu.co
   const handleSuggestEmail = (teacherId: string, teacherName: string) => {
-    // Convert "Pérez Juan" or "Juan Pérez" to "juan.perez@colegiobilingue.edu.co"
-    const cleaned = teacherName
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // remove accents
-      .replace(/[^a-z0-9\s]/g, '')
-      .trim()
-      .split(/\s+/);
-
-    let emailUser = '';
-    if (cleaned.length >= 2) {
-      emailUser = `${cleaned[1]}.${cleaned[0]}`;
-    } else if (cleaned.length === 1) {
-      emailUser = cleaned[0];
-    } else {
-      emailUser = 'docente';
-    }
-
-    const suggested = `${emailUser}@colegiobilingue.edu.co`;
+    const suggested = generateTeacherEmail(teacherName);
     setEditedEmails(prev => ({
       ...prev,
       [teacherId]: suggested
     }));
+  };
+
+  // Pre-fill all suggestions in local state
+  const handleFillAllSuggestedEmails = (overwriteExisting = false) => {
+    setEditedEmails(prev => {
+      const next = { ...prev };
+      teacherDirectory.forEach(t => {
+        const current = next[t.id] ?? t.email ?? '';
+        if (overwriteExisting || !current.trim()) {
+          next[t.id] = generateTeacherEmail(t.name);
+        }
+      });
+      return next;
+    });
+    setStatusMessage({
+      type: 'success',
+      text: 'Correos sugeridos autogenerados (inicial + apellido). Haz clic en "Guardar Todos los Correos" para guardarlos en la base de datos.'
+    });
+  };
+
+  // Automatically assign and persist emails to all teachers in database
+  const handleAutoAssignAllInDb = async (forceAll = false) => {
+    setAutoAssigning(true);
+    setStatusMessage(null);
+    try {
+      const res = await autoAssignTeacherEmailsApi(forceAll);
+      if (res.ok) {
+        // Reload teachers from database
+        const freshTeachers = await fetchTeachersFromApi();
+        setTeacherDirectory(freshTeachers);
+        saveTeachers(freshTeachers);
+        if (onUpdateTeachers) onUpdateTeachers(freshTeachers);
+
+        // Update local edited state
+        const newEdited: Record<string, string> = {};
+        freshTeachers.forEach(t => {
+          if (t.email) newEdited[t.id] = t.email;
+        });
+        setEditedEmails(newEdited);
+
+        setStatusMessage({
+          type: 'success',
+          text: `Se asignaron automáticamente ${res.count || 0} correos con la regla: inicial + apellido @colegiobilingue.edu.co.`
+        });
+        await loadLogs();
+      } else {
+        setStatusMessage({
+          type: 'error',
+          text: res.error || 'Error al auto-asignar correos en el servidor.'
+        });
+      }
+    } catch (err: any) {
+      setStatusMessage({
+        type: 'error',
+        text: `Error al auto-asignar correos: ${err.message}`
+      });
+    } finally {
+      setAutoAssigning(false);
+    }
   };
 
   // SMTP Save
@@ -1030,16 +1133,57 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
             </div>
 
             {isAdmin && (
-              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleAutoAssignAllInDb(false)}
+                  disabled={autoAssigning || bulkSaving}
+                  title="Asigna automáticamente correos con el formato: inicial + apellido @colegiobilingue.edu.co a los docentes sin correo"
+                  className="px-3 py-1.5 text-xs font-bold text-blue-900 dark:text-blue-200 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 text-blue-700 dark:text-blue-400 ${autoAssigning ? 'animate-spin' : ''}`} />
+                  <span>{autoAssigning ? 'Asignando...' : 'Auto-Asignar Correos Faltantes'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAutoAssignAllInDb(true)}
+                  disabled={autoAssigning || bulkSaving}
+                  title="Aplica la fórmula institucional oficial (inicial+apellido@colegiobilingue.edu.co) a TODOS los docentes"
+                  className="px-3 py-1.5 text-xs font-semibold text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${autoAssigning ? 'animate-spin' : ''}`} />
+                  <span>Re-generar Todos</span>
+                </button>
+
                 <button
                   onClick={handleSaveAllTeachers}
-                  disabled={bulkSaving}
+                  disabled={bulkSaving || autoAssigning}
                   className="px-3.5 py-1.5 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
                 >
                   <Check className="w-4 h-4" />
                   <span>{bulkSaving ? 'Guardando...' : 'Guardar Todos los Correos'}</span>
                 </button>
               </div>
+            )}
+          </div>
+
+          {/* Institutional Email Formula Info Callout */}
+          <div className="bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-blue-900 dark:text-blue-300">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span>
+                <strong>Regla de correo institucional automática:</strong> Primera inicial del nombre + apellido + <code className="font-mono bg-blue-100/70 dark:bg-blue-900/60 px-1.5 py-0.5 rounded text-blue-950 dark:text-blue-200 font-bold">@colegiobilingue.edu.co</code> (Ejemplo: Carlos Mendoza ➔ <span className="font-mono font-bold underline">cmendoza@colegiobilingue.edu.co</span>).
+              </span>
+            </div>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => handleFillAllSuggestedEmails(false)}
+                className="text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:underline shrink-0 cursor-pointer"
+              >
+                Pre-visualizar sugeridos en tabla
+              </button>
             )}
           </div>
 
@@ -1466,6 +1610,168 @@ export const AuditAndBackup: React.FC<AuditAndBackupProps> = ({
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Database Health & Non-Destructive Migrations Card */}
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-100 dark:border-neutral-800 pb-4">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 flex items-center justify-center shrink-0">
+                    <Server className="w-5 h-5 text-blue-900 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100">
+                        Estructura y Migraciones de Base de Datos
+                      </h3>
+                      {migrationStatus?.isUpToDate ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <CheckCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <span>Esquema al Día (v{migrationStatus.currentVersion})</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                          <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                          <span>{migrationStatus?.pendingMigrations?.length || 1} Actualización(es) Pendiente(s)</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                      Actualiza y valida tablas, índices y columnas de SQLite de forma 100% segura sin alterar ni sobrescribir los datos de producción.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={loadMigrations}
+                    disabled={loadingMigrations || runningMigrations}
+                    title="Consultar estado actual del esquema"
+                    className="p-2 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors cursor-pointer border border-neutral-200 dark:border-neutral-700"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingMigrations ? 'animate-spin' : ''}`} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRunMigrations}
+                    disabled={runningMigrations || loadingMigrations}
+                    className="px-4 py-2 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    <Sparkles className={`w-3.5 h-3.5 ${runningMigrations ? 'animate-spin' : ''}`} />
+                    <span>{runningMigrations ? 'Verificando y Aplicando...' : 'Verificar y Actualizar Esquema'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-3 border border-neutral-100 dark:border-neutral-800/80">
+                  <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">
+                    Versión Esquema
+                  </span>
+                  <span className="text-base font-extrabold text-neutral-900 dark:text-neutral-100 font-mono mt-0.5 block">
+                    v{migrationStatus?.currentVersion ?? 1}
+                  </span>
+                  <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
+                    {migrationStatus?.appliedMigrations?.length ?? 1} aplicada(s) de {migrationStatus?.latestAvailableVersion ?? 3}
+                  </span>
+                </div>
+
+                <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-3 border border-neutral-100 dark:border-neutral-800/80">
+                  <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">
+                    Docentes Registrados
+                  </span>
+                  <span className="text-base font-extrabold text-blue-900 dark:text-blue-300 font-mono mt-0.5 block">
+                    {migrationStatus?.tableCounts?.teachers ?? teacherDirectory.length}
+                  </span>
+                  <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
+                    {migrationStatus?.tableCounts?.schedule_slots ?? '—'} clases semanales
+                  </span>
+                </div>
+
+                <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-3 border border-neutral-100 dark:border-neutral-800/80">
+                  <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">
+                    Reemplazos & Ausencias
+                  </span>
+                  <span className="text-base font-extrabold text-neutral-900 dark:text-neutral-100 font-mono mt-0.5 block">
+                    {(migrationStatus?.tableCounts?.replacements ?? 0) + (migrationStatus?.tableCounts?.absences ?? 0)}
+                  </span>
+                  <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
+                    {migrationStatus?.tableCounts?.replacements ?? 0} reemplazos / {migrationStatus?.tableCounts?.absences ?? 0} ausencias
+                  </span>
+                </div>
+
+                <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-3 border border-neutral-100 dark:border-neutral-800/80">
+                  <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">
+                    Archivo SQLite
+                  </span>
+                  <span className="text-base font-extrabold text-neutral-900 dark:text-neutral-100 font-mono mt-0.5 block">
+                    {migrationStatus?.databaseSizeBytes ? `${(migrationStatus.databaseSizeBytes / 1024).toFixed(1)} KB` : 'Activo'}
+                  </span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate block">
+                    data/school_database.sqlite
+                  </span>
+                </div>
+              </div>
+
+              {/* Safety Guarantee Banner */}
+              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/60 rounded-xl p-3.5 flex items-start gap-3 text-xs text-emerald-900 dark:text-emerald-200">
+                <ShieldCheck className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold leading-snug">
+                    Garantía de Integridad y Protección en Producción:
+                  </p>
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                    Las actualizaciones se aplican de forma incremental y no destructiva (<code className="font-mono bg-emerald-100/70 dark:bg-emerald-900/50 px-1 rounded">ALTER TABLE ADD COLUMN</code> y <code className="font-mono bg-emerald-100/70 dark:bg-emerald-900/50 px-1 rounded">CREATE INDEX IF NOT EXISTS</code>). Antes de cualquier cambio, se genera automáticamente una instantánea previa en <code className="font-mono bg-emerald-100/70 dark:bg-emerald-900/50 px-1 rounded font-bold">data/backups/pre_migration_*.sqlite</code>. La base de datos está excluida de Git para no sobrescribirse nunca al desplegar.
+                  </p>
+                </div>
+              </div>
+
+              {/* Applied Migrations Details Accordion */}
+              {migrationStatus?.appliedMigrations && migrationStatus.appliedMigrations.length > 0 && (
+                <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowAppliedDetails(!showAppliedDetails)}
+                    className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-800/40 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-left flex items-center justify-between text-xs font-semibold text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Layers className="w-3.5 h-3.5 text-neutral-500" />
+                      <span>Historial de Versiones del Esquema ({migrationStatus.appliedMigrations.length} registradas)</span>
+                    </span>
+                    {showAppliedDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+
+                  {showAppliedDetails && (
+                    <div className="p-3 divide-y divide-neutral-100 dark:divide-neutral-800/80 bg-white dark:bg-neutral-900">
+                      {migrationStatus.appliedMigrations.map(m => (
+                        <div key={m.version} className="py-2.5 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-blue-900 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded text-[11px]">
+                                v{m.version}
+                              </span>
+                              <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                                {m.name}
+                              </span>
+                            </div>
+                            {m.description && (
+                              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+                                {m.description}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-mono text-neutral-400 shrink-0">
+                            {formatTimestamp(m.appliedAt)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Action Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Card 1: Download Current Database */}

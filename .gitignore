@@ -6,3 +6,10 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Database & persistence files (Production safe)
+data/
+*.sqlite
+*.sqlite-journal
+*.sqlite.bak*
+*.db
