@@ -7,8 +7,9 @@ coverage/
 .env*
 !.env.example
 
-# Database & persistence files (Production safe)
-data/
+# Database & persistence files (Production safe - root folder only)
+/data/
+!/src/data/
 *.sqlite
 *.sqlite-journal
 *.sqlite.bak*
